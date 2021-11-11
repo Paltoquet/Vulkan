@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "ShaderLoader.h"
 
+/*
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -169,7 +170,7 @@ void Application::createLogicalDevice()
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
-    createInfo.queueCreateInfoCount = queueCreateInfos.size();
+    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pEnabledFeatures = &deviceFeatures;
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
@@ -299,7 +300,7 @@ void Application::createRenderPass()
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
     subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
-    /* Start the RenderPass when the piepeline is ready to write to the color attachment*/
+    /* Start the RenderPass when the piepeline is ready to write to the color attachment
     VkSubpassDependency dependency{};
     // Implicit before and after subpass
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -352,7 +353,7 @@ void Application::createDescriptorLayout()
 
 void Application::createGraphicsPipeline()
 {
-    /* --------------------------------- Shader Loadings --------------------------------- */
+    /* --------------------------------- Shader Loadings --------------------------------- 
     VkShaderModule vertShaderModule = ShaderLoader::loadShader("shaders/vert.spv", m_device);
     VkShaderModule fragShaderModule = ShaderLoader::loadShader("shaders/frag.spv", m_device);
 
@@ -372,7 +373,7 @@ void Application::createGraphicsPipeline()
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-    /* --------------------------------- Shader Bindings --------------------------------- */
+    /* --------------------------------- Shader Bindings --------------------------------- 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 
     //auto bindingDescription    = m_quad.getBindingDescription();
@@ -391,7 +392,7 @@ void Application::createGraphicsPipeline()
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    /* --------------------------------- Screen & Viewports --------------------------------- */
+    /* --------------------------------- Screen & Viewports --------------------------------- 
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
@@ -435,7 +436,7 @@ void Application::createGraphicsPipeline()
     multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
     multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-    /* --------------------------------- Pipeline States --------------------------------- */
+    /* --------------------------------- Pipeline States --------------------------------- 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_TRUE;
@@ -478,7 +479,7 @@ void Application::createGraphicsPipeline()
     dynamicState.dynamicStateCount = 2;
     dynamicState.pDynamicStates = dynamicStates;
 
-    /* --------------------------------- Shader Uniforms --------------------------------- */
+    /* --------------------------------- Shader Uniforms --------------------------------- 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
@@ -490,7 +491,7 @@ void Application::createGraphicsPipeline()
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
-    /* --------------------------------- Pipeline Creation --------------------------------- */
+    /* --------------------------------- Pipeline Creation --------------------------------- 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
@@ -892,7 +893,7 @@ void Application::transitionImageLayout(VkImage image, VkFormat format, VkImageL
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    /* Color, Depth and Stencil*/
+    /* Color, Depth and Stencil
     if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
@@ -1365,7 +1366,7 @@ void Application::cleanupSwapChain()
     vkDestroySwapchainKHR(m_device, m_swapChain, nullptr);
 }
 
-/* ----------------------------------- Private Methods ----------------------------------- */
+/* ----------------------------------- Private Methods ----------------------------------- 
 
 VkCommandBuffer Application::beginSingleTimeCommands() {
     VkCommandBufferAllocateInfo allocInfo{};
@@ -1427,8 +1428,8 @@ void Application::setupDebugMessenger() {
 
 void Application::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |*/ VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = /*VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |*/ VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.messageSeverity = /*VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = /*VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
     createInfo.flags = 0;
     createInfo.pUserData = nullptr;
@@ -1687,4 +1688,4 @@ bool Application::checkDeviceExtensionSupport(VkPhysicalDevice device) {
     }
 
     return requiredExtensions.empty();
-}
+}*/

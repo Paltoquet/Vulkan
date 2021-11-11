@@ -1,5 +1,5 @@
 #pragma once
-#define GLFW_INCLUDE_VULKAN
+/*#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include "MatrixBuffer.h"
@@ -158,4 +158,4 @@ private:
     MatrixBuffer m_matrixBuffer;
     //Quad m_quad;
     Mesh m_mesh;
-};
+};*/

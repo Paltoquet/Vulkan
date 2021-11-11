@@ -1,0 +1,82 @@
+#pragma once
+
+#include "SwapChain.h"
+#include "RenderFrame.h"
+
+#include <vulkan/vulkan.h>
+#include <vector>
+#include <memory>
+
+struct FrameBufferAttachment {
+    VkImage image;
+    VkDeviceMemory imageMemory;
+    VkImageView imageView;
+};
+
+class RenderContext
+{
+public:
+    RenderContext(const VkSurfaceKHR& surface, const VkPhysicalDevice& device);
+    ~RenderContext();
+
+public:
+    void createLogicalDevice();
+    void createSwapChain(const VkExtent2D& dimension, const SwapChainSupportInfos& availableDetails);
+    void createFrameBuffers(const VkRenderPass& renderPass);
+    void createCommandPool();
+    void pickGraphicQueue();
+    void pickDepthImageFormat();
+    void pickSampleCount();
+
+    void cleanUpDevice();
+    void cleanUpFrameBuffers();
+    void cleanUpSwapChain();
+
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+    void copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize bufferSize);
+    VkCommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+    const SwapChain& swapChain() const;
+    const std::vector<VkFramebuffer>& frameBuffers() const;
+    VkFormat depthImageFormat() const;
+    VkSampleCountFlagBits multiSamplingSamples() const;
+
+    const VkSurfaceKHR& surface();
+    const VkPhysicalDevice& physicalDevice();
+    const VkDevice& device();
+    const VkCommandPool& commandPool() const;
+    const VkQueue& graphicsQueue() const;
+    const VkQueue& presentQueue() const;
+    uint32_t graphicQueueIndex() const;
+    uint32_t presentQueueIndex() const;
+
+    const VkExtent2D& dimension() const;
+    int width() const;
+    int height() const;
+
+public:
+    static const bool enableValidationLayers;
+    static const std::vector<const char*> requiredExtensions;
+    static const std::vector<const char*> validationLayers;
+
+private:
+    const VkSurfaceKHR& m_surface;
+    const VkPhysicalDevice& m_physicalDevice;
+    VkDevice m_device;
+    VkCommandPool m_commandPool;
+    std::unique_ptr<SwapChain> m_swapChain;
+    std::vector<RenderFrame> m_frames;
+    std::vector<VkFramebuffer> m_frameBuffers;
+
+    FrameBufferAttachment m_colorAttachment;
+    FrameBufferAttachment m_depthAttachment;
+
+    VkQueue m_graphicsQueue;
+    VkQueue m_presentQueue;
+    uint32_t m_graphicQueueIndex;
+    uint32_t m_presentQueueIndex;
+    VkFormat m_depthImageFormat;
+    VkSampleCountFlagBits m_MSAASamples;
+};
+
