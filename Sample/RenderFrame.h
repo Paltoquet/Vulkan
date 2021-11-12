@@ -10,8 +10,11 @@ public:
 
 public:
     const VkImageView& getImageView() const;
+    VkFence synchronizationFence() const;
 
 private:
+    VkDevice m_device;
     ImageView m_imageView;
+    VkFence m_synchronizationFence;
 };
 

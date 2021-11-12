@@ -41,6 +41,7 @@ public:
     const std::vector<VkFramebuffer>& frameBuffers() const;
     VkFormat depthImageFormat() const;
     VkSampleCountFlagBits multiSamplingSamples() const;
+    const RenderFrame& getRenderFrame(uint32_t index) const;
 
     const VkSurfaceKHR& surface();
     const VkPhysicalDevice& physicalDevice();
@@ -66,7 +67,7 @@ private:
     VkDevice m_device;
     VkCommandPool m_commandPool;
     std::unique_ptr<SwapChain> m_swapChain;
-    std::vector<RenderFrame> m_frames;
+    std::vector<std::unique_ptr<RenderFrame>> m_frames;
     std::vector<VkFramebuffer> m_frameBuffers;
 
     FrameBufferAttachment m_colorAttachment;

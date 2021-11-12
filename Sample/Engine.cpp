@@ -6,17 +6,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <iostream>
 #include <array>
 #include <chrono>
-
-const int MAX_FRAMES_IN_FLIGHT = 2;
 
 /* --------------------------------- Constructors --------------------------------- */
 
 Engine::Engine(const VkSurfaceKHR& surface, const VkPhysicalDevice& device):
     m_renderContext(nullptr),
-    m_textureLoader(nullptr),
-    m_framebufferResized(false)
+    m_textureLoader(nullptr)
 {
     m_renderContext = std::make_unique<RenderContext>(surface, device);
 }
@@ -66,7 +64,6 @@ void Engine::initialize(const VkExtent2D& dimension, const SwapChainSupportInfos
 
 void Engine::drawFrame()
 {
-    vkWaitForFences(m_renderContext->device(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(m_renderContext->device(), m_renderContext->swapChain().vkSwapChain(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
 
@@ -78,12 +75,10 @@ void Engine::drawFrame()
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    // Check if a previous frame is using this image (i.e. there is its fence to wait on)
-    if (m_imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-        vkWaitForFences(m_renderContext->device(), 1, &m_imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
-    }
-    // Mark the image as now being in use by this frame
-    m_imagesInFlight[imageIndex] = m_inFlightFences[m_currentFrame];
+    const RenderFrame& currentFrame = m_renderContext->getRenderFrame(imageIndex);
+    const VkFence& fence = currentFrame.synchronizationFence();
+    vkWaitForFences(m_renderContext->device(), 1, &fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(m_renderContext->device(), 1, &fence);
 
     // --------------------------------- Submit command ---------------------------------
 
@@ -104,9 +99,7 @@ void Engine::drawFrame()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    vkResetFences(m_renderContext->device(), 1, &m_inFlightFences[m_currentFrame]);
-
-    if (vkQueueSubmit(m_renderContext->graphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS) {
+    if (vkQueueSubmit(m_renderContext->graphicsQueue(), 1, &submitInfo, currentFrame.synchronizationFence()) != VK_SUCCESS) {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
 
@@ -124,15 +117,14 @@ void Engine::drawFrame()
 
     result = vkQueuePresentKHR(m_renderContext->presentQueue(), &presentInfo);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_framebufferResized) {
-        m_framebufferResized = false;
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
         recreateSwapChain();
     }
     else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");
     }
 
-    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    m_currentFrame = (m_currentFrame + 1) % m_renderContext->swapChain().size();
 }
 
 void Engine::resize(int width, int height, const SwapChainSupportInfos& swapChainSupport)
@@ -141,7 +133,6 @@ void Engine::resize(int width, int height, const SwapChainSupportInfos& swapChai
     m_windowWidth = width;
     m_windowHeight = height;
     recreateSwapChain();
-    //m_framebufferResized = true;
 }
 
 void Engine::cleanUp()
@@ -154,10 +145,9 @@ void Engine::cleanUp()
     vkFreeMemory(m_renderContext->device(), m_textureImage.Vkmemory, nullptr);
     vkDestroyDescriptorSetLayout(m_renderContext->device(), m_sceneDescriptorLayout, nullptr);
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    for (size_t i = 0; i < m_imageAvailableSemaphores.size(); i++) {
         vkDestroySemaphore(m_renderContext->device(), m_renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(m_renderContext->device(), m_imageAvailableSemaphores[i], nullptr);
-        vkDestroyFence(m_renderContext->device(), m_inFlightFences[i], nullptr);
     }
 
     vkDestroyBuffer(m_renderContext->device(), m_indexBuffer, nullptr);
@@ -647,10 +637,8 @@ void Engine::createDescriptorSet()
 void Engine::createSyncObjects()
 {
     m_currentFrame = 0;
-    m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    m_imagesInFlight.resize(m_renderContext->swapChain().size(), VK_NULL_HANDLE);
+    m_imageAvailableSemaphores.resize(m_renderContext->swapChain().size());
+    m_renderFinishedSemaphores.resize(m_renderContext->swapChain().size());
 
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -659,10 +647,9 @@ void Engine::createSyncObjects()
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    for (size_t i = 0; i < m_renderContext->swapChain().size(); i++) {
         if (vkCreateSemaphore(m_renderContext->device(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(m_renderContext->device(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(m_renderContext->device(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS) {
+            vkCreateSemaphore(m_renderContext->device(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) != VK_SUCCESS ) {
 
             throw std::runtime_error("failed to create semaphores for a frame!");
         }

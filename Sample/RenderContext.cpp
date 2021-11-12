@@ -61,7 +61,7 @@ void RenderContext::cleanUpFrameBuffers()
 void RenderContext::cleanUpSwapChain()
 {
     for (size_t i = 0; i < m_frames.size(); i++) {
-        vkDestroyImageView(m_device, m_frames[i].getImageView(), nullptr);
+        vkDestroyImageView(m_device, m_frames[i]->getImageView(), nullptr);
     }
     m_frames.clear();
     m_swapChain.reset();
@@ -118,7 +118,8 @@ void RenderContext::createSwapChain(const VkExtent2D& dimension, const SwapChain
     auto imageFormat = m_swapChain->currentImageFormat();
     m_frames.clear();
     for (size_t i = 0; i < swapChainImages.size(); i++) {
-        m_frames.emplace_back(m_device, swapChainImages[i], imageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        std::unique_ptr<RenderFrame> frame = std::make_unique<RenderFrame>(m_device, swapChainImages[i], imageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        m_frames.push_back(std::move(frame));
     }
 }
 
@@ -144,7 +145,7 @@ void RenderContext::createFrameBuffers(const VkRenderPass& renderPass)
         std::array<VkImageView, 3> attachments = {
             m_colorAttachment.imageView,
             m_depthAttachment.imageView,
-            m_frames[i].getImageView(),
+            m_frames[i]->getImageView(),
         };
 
         VkFramebufferCreateInfo framebufferInfo{};
@@ -340,6 +341,11 @@ VkFormat RenderContext::depthImageFormat() const
 VkSampleCountFlagBits RenderContext::multiSamplingSamples() const
 {
     return m_MSAASamples;
+}
+
+const RenderFrame& RenderContext::getRenderFrame(uint32_t index) const
+{
+    return *m_frames.at(index);
 }
 
 const VkSurfaceKHR& RenderContext::surface()
