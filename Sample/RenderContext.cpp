@@ -60,9 +60,6 @@ void RenderContext::cleanUpFrameBuffers()
 
 void RenderContext::cleanUpSwapChain()
 {
-    for (size_t i = 0; i < m_frames.size(); i++) {
-        vkDestroyImageView(m_device, m_frames[i]->getImageView(), nullptr);
-    }
     m_frames.clear();
     m_swapChain.reset();
 }

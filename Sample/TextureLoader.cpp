@@ -19,14 +19,15 @@ TextureLoader::~TextureLoader()
 
 /* --------------------------------- Public methods --------------------------------- */
 
-Image TextureLoader::loadTexture(const std::string& path, const VkFormat& format)
+ImageView TextureLoader::loadTexture(const std::string& path, const VkFormat& format, VkImageAspectFlags aspect)
 {
-    Image result;
+    Image imageInfo;
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
-    result.Vkformat = format;
-    result.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+    imageInfo.Vkformat = format;
+    imageInfo.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+    imageInfo.aspectFlag = aspect;
 
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
@@ -41,21 +42,21 @@ Image TextureLoader::loadTexture(const std::string& path, const VkFormat& format
     vkUnmapMemory(m_renderContext->device(), stagingBufferMemory);
     stbi_image_free(pixels);
 
-    vk_initializer::createImage(m_renderContext->device(), m_renderContext->physicalDevice(), texWidth, texHeight, result.mipLevels, VK_SAMPLE_COUNT_1_BIT, result.Vkformat, VK_IMAGE_TILING_OPTIMAL,
+    vk_initializer::createImage(m_renderContext->device(), m_renderContext->physicalDevice(), texWidth, texHeight, imageInfo.mipLevels, VK_SAMPLE_COUNT_1_BIT, imageInfo.Vkformat, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        result.Vkimage, result.Vkmemory);
+        imageInfo.Vkimage, imageInfo.Vkmemory);
 
-    transitionImageLayout(result, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    copyBufferToImage(stagingBuffer, result.Vkimage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    transitionImageLayout(imageInfo, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    copyBufferToImage(stagingBuffer, imageInfo.Vkimage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
     //transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL while generating mipmaps
     //transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, m_mipLevels);
 
     vkDestroyBuffer(m_renderContext->device(), stagingBuffer, nullptr);
     vkFreeMemory(m_renderContext->device(), stagingBufferMemory, nullptr);
 
-    generateMipmaps(result, texWidth, texHeight);
+    generateMipmaps(imageInfo, texWidth, texHeight);
 
-    return result;
+    return ImageView(m_renderContext->device(), imageInfo);
 }
 
 /* --------------------------------- Private methods --------------------------------- */

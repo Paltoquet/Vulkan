@@ -74,7 +74,6 @@ private:
     VkDeviceMemory m_vertexBufferMemory;
     VkBuffer m_indexBuffer;
     VkDeviceMemory m_indexBufferMemory;
-    Image m_textureImage;
     ImageView m_textureImageView;
     VkSampler m_textureSampler;
     MatrixBuffer m_matrixBuffer;

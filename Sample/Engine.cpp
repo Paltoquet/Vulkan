@@ -140,9 +140,7 @@ void Engine::cleanUp()
     cleanUpSwapchain();
 
     vkDestroySampler(m_renderContext->device(), m_textureSampler, nullptr);
-    vkDestroyImageView(m_renderContext->device(), m_textureImageView.view(), nullptr);
-    vkDestroyImage(m_renderContext->device(), m_textureImage.Vkimage, nullptr);
-    vkFreeMemory(m_renderContext->device(), m_textureImage.Vkmemory, nullptr);
+    m_textureImageView.cleanUp(m_renderContext->device());
     vkDestroyDescriptorSetLayout(m_renderContext->device(), m_sceneDescriptorLayout, nullptr);
 
     for (size_t i = 0; i < m_imageAvailableSemaphores.size(); i++) {
@@ -337,8 +335,7 @@ void Engine::loadModels()
 
 void Engine::loadTextures()
 {
-    m_textureImage = m_textureLoader->loadTexture("textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB);
-    m_textureImageView = ImageView(m_renderContext->device(), m_textureImage.Vkimage, m_textureImage.Vkformat, VK_IMAGE_ASPECT_COLOR_BIT, m_textureImage.mipLevels);
+    m_textureImageView = m_textureLoader->loadTexture("textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Engine::loadShaders()
@@ -678,7 +675,7 @@ void Engine::createTextureSampler()
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = static_cast<float>(m_textureImage.mipLevels);
+    samplerInfo.maxLod = static_cast<float>(m_textureImageView.mipLevels());
 
     if (vkCreateSampler(m_renderContext->device(), &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");

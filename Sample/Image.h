@@ -9,8 +9,12 @@ public:
     ~Image();
 
 public:
+    void cleanUp(VkDevice device);
+
+public:
     VkImage Vkimage;
     VkDeviceMemory Vkmemory;
+    VkImageAspectFlags aspectFlag;
     VkFormat Vkformat;
     uint32_t mipLevels;
 };

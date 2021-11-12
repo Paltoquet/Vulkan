@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RenderContext.h"
-#include "Image.h"
+#include "ImageView.h"
 
 
 class TextureLoader
@@ -11,7 +11,7 @@ public:
     ~TextureLoader();
 
 public:
-    Image loadTexture(const std::string& path, const VkFormat& format);
+    ImageView loadTexture(const std::string& path, const VkFormat& format, VkImageAspectFlags aspect);
 
 private:
     void generateMipmaps(const Image& image, int32_t texWidth, int32_t texHeight);

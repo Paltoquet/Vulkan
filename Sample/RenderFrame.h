@@ -9,12 +9,12 @@ public:
     ~RenderFrame();
 
 public:
-    const VkImageView& getImageView() const;
+    VkImageView getImageView() const;
     VkFence synchronizationFence() const;
 
 private:
     VkDevice m_device;
-    ImageView m_imageView;
+    VkImageView m_imageView;
     VkFence m_synchronizationFence;
 };
 
