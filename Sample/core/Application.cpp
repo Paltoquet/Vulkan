@@ -1,7 +1,6 @@
 #include "Application.h"
-#include "ShaderLoader.h"
+/*#include "ShaderLoader.h"
 
-/*
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 

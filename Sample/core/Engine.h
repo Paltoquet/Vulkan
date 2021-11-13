@@ -1,9 +1,9 @@
 #pragma once
 
 #include "RenderContext.h"
-#include "TextureLoader.h"
-#include "MatrixBuffer.h"
-#include "Mesh.h"
+#include <utils/TextureLoader.h>
+#include <utils/MatrixBuffer.h>
+#include <utils/Mesh.h>
 
 #include <memory>
 #include <vector>

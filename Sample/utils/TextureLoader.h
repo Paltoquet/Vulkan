@@ -1,8 +1,7 @@
 #pragma once
 
-#include "RenderContext.h"
-#include "ImageView.h"
-
+#include <core/RenderContext.h>
+#include <utils/ImageView.h>
 
 class TextureLoader
 {

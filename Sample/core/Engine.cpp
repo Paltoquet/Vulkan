@@ -1,5 +1,5 @@
 #include "Engine.h"
-#include "ShaderLoader.h"
+#include <utils/ShaderLoader.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -330,12 +330,12 @@ void Engine::createDescriptorLayout()
 
 void Engine::loadModels()
 {
-    m_mesh.loadMesh("models/viking_room.obj");
+    m_mesh.loadMesh("ressources/models/viking_room.obj");
 }
 
 void Engine::loadTextures()
 {
-    m_textureImageView = m_textureLoader->loadTexture("textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_textureImageView = m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Engine::loadShaders()

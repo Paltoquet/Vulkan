@@ -1,5 +1,5 @@
 #include "TextureLoader.h"
-#include "VkInitializer.h"
+#include <core/VkInitializer.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

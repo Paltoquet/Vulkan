@@ -1,5 +1,5 @@
-#include "Application.h"
-#include "Platform.h"
+#include "core/Application.h"
+#include <core/Platform.h>
 
 #include <iostream>
 #include <stdexcept>
