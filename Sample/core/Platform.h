@@ -2,6 +2,8 @@
 
 #include "Window.h"
 #include "Engine.h"
+#include <utils/CameraController.h>
+#include <utils/Camera.h>
 
 #include <memory>
 #include <vector>
@@ -29,6 +31,10 @@ public:
     void mainLoop();
     void cleanUp();
     void resize(int width, int height);
+    void mouseMove(double xpos, double ypos);
+    void mousePress(double xpos, double ypos);
+    void mouseRelease(double xpos, double ypos);
+    void mouseScroll(double scrollDelta);
 
 private:
     void createVulkanInstance();
@@ -50,6 +56,8 @@ private:
     std::string m_applicationName;
     std::unique_ptr<Window> m_window;
     std::unique_ptr<Engine> m_engine;
+    std::unique_ptr<Camera> m_camera;
+    std::unique_ptr<CameraController> m_cameraController;
     VkInstance m_instance;
     VkDebugUtilsMessengerEXT m_debugMessenger;
     VkPhysicalDevice m_physicalDevice;

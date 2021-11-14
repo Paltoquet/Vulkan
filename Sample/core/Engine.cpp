@@ -62,7 +62,7 @@ void Engine::initialize(const VkExtent2D& dimension, const SwapChainSupportInfos
     createSyncObjects();
 }
 
-void Engine::drawFrame()
+void Engine::drawFrame(const Camera& camera)
 {
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(m_renderContext->device(), m_renderContext->swapChain().vkSwapChain(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
@@ -82,7 +82,7 @@ void Engine::drawFrame()
 
     // --------------------------------- Submit command ---------------------------------
 
-    updateUniformBuffer(imageIndex);
+    updateUniformBuffer(camera, imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -201,26 +201,26 @@ RenderContext* Engine::renderContext()
 
 /* --------------------------------- Private methods --------------------------------- */
 
-void Engine::updateUniformBuffer(uint32_t currentImage)
+void Engine::updateUniformBuffer(const Camera& camera, uint32_t currentImage)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-    m_matrixBuffer.buffer.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::mat4 recenter = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, -0.5f));
+    m_matrixBuffer.buffer.model = camera.arcBallModel() * recenter;
+    //m_matrixBuffer.buffer.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * recenter;
     //m_matrixBuffer.buffer.model = glm::mat4(1.0f); // 
     //m_matrixBuffer.buffer.view = glm::lookAt(glm::vec3(0.0f, 0.0f, -3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     //m_matrixBuffer.buffer.view = glm::lookAt(glm::vec3(2.0f, 0.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    m_matrixBuffer.buffer.proj = glm::perspective(glm::radians(45.0f), m_renderContext->width() / (float)m_renderContext->height(), 0.1f, 10.0f);
+    //m_matrixBuffer.buffer.proj = glm::perspective(glm::radians(45.0f), m_renderContext->width() / (float)m_renderContext->height(), 0.1f, 10.0f);
     //m_matrixBuffer.buffer.proj = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10.0f);
     //m_matrixBuffer.buffer.proj[1][1] = -1.0f;
 
-    //m_matrixBuffer.buffer.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    m_matrixBuffer.buffer.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    m_matrixBuffer.buffer.proj = glm::perspective(glm::radians(45.0f), m_renderContext->width() / (float)m_renderContext->height(), 0.1f, 10.0f);
+    m_matrixBuffer.buffer.view = camera.viewMatrix();
+    m_matrixBuffer.buffer.proj = camera.projectionMatrix();
     m_matrixBuffer.buffer.proj[1][1] *= -1;
-
 
     void* data;
     vkMapMemory(m_renderContext->device(), m_uniformBuffersMemory[currentImage], 0, sizeof(MatrixBuffer::BufferData), 0, &data);

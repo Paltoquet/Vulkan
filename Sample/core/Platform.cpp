@@ -46,13 +46,16 @@ void Platform::initialize()
 
     m_engine = std::make_unique<Engine>(m_surface, m_physicalDevice);
     m_engine->initialize(m_dimension, m_availableSwapChainInfos);
+
+    m_camera = std::make_unique<Camera>(glm::vec2(m_dimension.width, m_dimension.height), glm::vec3(0.0f, 3.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), 45.0f);
+    m_cameraController = std::make_unique<CameraController>(m_camera.get(), m_dimension.width, m_dimension.height);
 }
 
 void Platform::mainLoop()
 {
     while (!glfwWindowShouldClose(m_window->handle())) {
         glfwPollEvents();
-        m_engine->drawFrame();
+        m_engine->drawFrame(*m_camera);
     }
 
     vkDeviceWaitIdle(m_engine->renderContext()->device());
@@ -60,12 +63,42 @@ void Platform::mainLoop()
 
 void Platform::resize(int width, int height)
 {
-    int frameWidth, frameheight;
-    glfwGetFramebufferSize(m_window->handle(), &frameWidth, &frameheight);
+    int frameWidth, frameHeight;
+    glfwGetFramebufferSize(m_window->handle(), &frameWidth, &frameHeight);
     glfwWaitEvents();
 
     m_availableSwapChainInfos = querySwapChainSupport(m_physicalDevice);
-    m_engine->resize(frameWidth, frameheight, m_availableSwapChainInfos);
+    m_engine->resize(frameWidth, frameHeight, m_availableSwapChainInfos);
+    m_camera->resize(glm::vec2(frameWidth, frameHeight));
+    m_cameraController->resize(frameWidth, frameHeight);
+}
+
+void Platform::mouseMove(double xpos, double ypos)
+{
+    if (m_cameraController) {
+        m_cameraController->mouseMove(xpos, ypos);
+    }
+}
+
+void Platform::mousePress(double xpos, double ypos)
+{
+    if (m_cameraController) {
+        m_cameraController->mousePress(xpos, ypos);
+    }
+}
+
+void Platform::mouseRelease(double xpos, double ypos)
+{
+    if (m_cameraController) {
+        m_cameraController->mouseRelease(xpos, ypos);
+    }
+}
+
+void Platform::mouseScroll(double scrollDelta)
+{
+    if (m_cameraController) {
+        m_cameraController->mouseScroll(scrollDelta);
+    }
 }
 
 void Platform::cleanUp()

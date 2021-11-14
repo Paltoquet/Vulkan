@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RenderContext.h"
+#include <utils/Camera.h>
 #include <utils/TextureLoader.h>
 #include <utils/MatrixBuffer.h>
 #include <utils/Mesh.h>
@@ -17,7 +18,7 @@ public:
 
 public:
     void initialize(const VkExtent2D& dimension, const SwapChainSupportInfos& swapChainSupport);
-    void drawFrame();
+    void drawFrame(const Camera& camera);
     void resize(int width, int height, const SwapChainSupportInfos& swapChainSupport);
     void cleanUp();
 
@@ -40,7 +41,7 @@ private:
     void createCommandBuffers();
     void createSyncObjects();
 
-    void updateUniformBuffer(uint32_t currentImage);
+    void updateUniformBuffer(const Camera& camera, uint32_t currentImage);
 
     void recreateSwapChain();
     void cleanUpSwapchain();
