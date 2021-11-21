@@ -33,8 +33,8 @@ void CameraController::mouseMove(double xpos, double ypos)
         glm::vec3 currentVector = getArcBallVector(glm::vec2(xpos, ypos));
         glm::vec3 rotationVector = glm::cross(currentVector, m_previousVector);
 
-        // Don't know why but i must invert the x rotation axis
-        rotationVector.x = -1.0f * rotationVector.x;
+        // Don't know why but i must invert the y rotation axis
+        rotationVector.y = -1.0f * rotationVector.y;
         float angle = glm::dot(currentVector, m_previousVector);
         glm::quat rotation = glm::angleAxis(angle, rotationVector);
         m_previousVector = currentVector;
