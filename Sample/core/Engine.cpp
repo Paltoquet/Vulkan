@@ -53,8 +53,7 @@ void Engine::initialize(const VkExtent2D& dimension, const SwapChainSupportInfos
     createGraphicsPipeline();
     createTextureSampler();
 
-    createVertexBuffer();
-    createIndexBuffer();
+    createMeshBuffers();
     createUniformBuffer();
     createDescriptorPool();
     createDescriptorSet();
@@ -148,10 +147,7 @@ void Engine::cleanUp()
         vkDestroySemaphore(m_renderContext->device(), m_imageAvailableSemaphores[i], nullptr);
     }
 
-    vkDestroyBuffer(m_renderContext->device(), m_indexBuffer, nullptr);
-    vkFreeMemory(m_renderContext->device(), m_indexBufferMemory, nullptr);
-    vkDestroyBuffer(m_renderContext->device(), m_vertexBuffer, nullptr);
-    vkFreeMemory(m_renderContext->device(), m_vertexBufferMemory, nullptr);
+    m_mesh.cleanUp(*m_renderContext);
     vkDestroyShaderModule(m_renderContext->device(), m_vertTextureShader, nullptr);
     vkDestroyShaderModule(m_renderContext->device(), m_fragTextureShader, nullptr);
     
@@ -330,7 +326,7 @@ void Engine::createDescriptorLayout()
 
 void Engine::loadModels()
 {
-    m_mesh.loadMesh("ressources/models/viking_room.obj");
+    m_mesh.load("ressources/models/viking_room.obj");
 }
 
 void Engine::loadTextures()
@@ -547,10 +543,10 @@ void Engine::createCommandBuffers()
         vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_mainGraphicsPipeline);
 
-        VkBuffer vertexBuffers[] = { m_vertexBuffer };
+        VkBuffer vertexBuffers[] = { m_mesh.vertexBuffer() };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(m_commandBuffers[i], m_indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(m_commandBuffers[i], m_mesh.indexBuffer(), 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_mainPipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr);
         //vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_quad.indices().size()), 1, 0, 0, 0);
         vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_mesh.indices().size()), 1, 0, 0, 0);
@@ -682,48 +678,9 @@ void Engine::createTextureSampler()
     }
 }
 
-void Engine::createVertexBuffer()
+void Engine::createMeshBuffers()
 {
-    const std::vector<VertexData> vertices = m_mesh.vertices();
-    //const std::vector<Quad::VertexData> vertices = m_quad.vertices();
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    m_renderContext->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(m_renderContext->device(), stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferSize);
-    vkUnmapMemory(m_renderContext->device(), stagingBufferMemory);
-
-    m_renderContext->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
-    m_renderContext->copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(m_renderContext->device(), stagingBuffer, nullptr);
-    vkFreeMemory(m_renderContext->device(), stagingBufferMemory, nullptr);
-}
-
-void Engine::createIndexBuffer()
-{
-    //const std::vector<uint16_t>& indices = m_quad.indices();
-    const std::vector<uint32_t>& indices = m_mesh.indices();
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    m_renderContext->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(m_renderContext->device(), stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), (size_t)bufferSize);
-    vkUnmapMemory(m_renderContext->device(), stagingBufferMemory);
-
-    m_renderContext->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_indexBuffer, m_indexBufferMemory);
-    m_renderContext->copyBuffer(stagingBuffer, m_indexBuffer, bufferSize);
-
-    vkDestroyBuffer(m_renderContext->device(), stagingBuffer, nullptr);
-    vkFreeMemory(m_renderContext->device(), stagingBufferMemory, nullptr);
+    m_mesh.createBuffers(*m_renderContext);
 }
 
 void Engine::createUniformBuffer()

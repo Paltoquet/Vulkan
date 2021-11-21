@@ -4,7 +4,7 @@
 #include <utils/Camera.h>
 #include <utils/TextureLoader.h>
 #include <utils/MatrixBuffer.h>
-#include <utils/Mesh.h>
+#include <utils/SkinMesh.h>
 
 #include <memory>
 #include <vector>
@@ -33,8 +33,7 @@ private:
     void loadShaders();
     void createGraphicsPipeline();
     void createTextureSampler();
-    void createVertexBuffer();
-    void createIndexBuffer();
+    void createMeshBuffers();
     void createUniformBuffer();
     void createDescriptorPool();
     void createDescriptorSet();
@@ -70,11 +69,7 @@ private:
     std::vector<VkCommandBuffer> m_commandBuffers;
 
     // Models data
-    Mesh m_mesh;
-    VkBuffer m_vertexBuffer;
-    VkDeviceMemory m_vertexBufferMemory;
-    VkBuffer m_indexBuffer;
-    VkDeviceMemory m_indexBufferMemory;
+    SkinMesh m_mesh;
     ImageView m_textureImageView;
     VkSampler m_textureSampler;
     MatrixBuffer m_matrixBuffer;

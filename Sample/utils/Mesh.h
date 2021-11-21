@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include <core/RenderContext.h>
 #include <glm/glm.hpp>
 #include <vector>
 #include <array>
@@ -35,13 +35,26 @@ public:
     ~Mesh();
 
 public:
-    void loadMesh(const std::string& fileName);
-    VkVertexInputBindingDescription getBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+    void createBuffers(const RenderContext& renderContext);
+    virtual void cleanUp(const RenderContext& renderContext);
+    virtual VkVertexInputBindingDescription getBindingDescription();
+    virtual std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+
     const std::vector<VertexData>& vertices() const;
     const std::vector<uint32_t>& indices() const;
+    VkBuffer vertexBuffer() const;
+    VkBuffer indexBuffer() const;
 
-private:
+protected:
+    virtual void createVertexBuffer(const RenderContext& renderContext);
+    virtual void createIndexBuffer(const RenderContext& renderContext);
+
+protected:
     std::vector<VertexData> m_vertices;
     std::vector<uint32_t> m_indices;
+
+    VkBuffer m_vertexBuffer;
+    VkDeviceMemory m_vertexBufferMemory;
+    VkBuffer m_indexBuffer;
+    VkDeviceMemory m_indexBufferMemory;
 };

@@ -199,7 +199,7 @@ void RenderContext::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, Vk
     vkBindBufferMemory(m_device, buffer, bufferMemory, 0);
 }
 
-void RenderContext::copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize size)
+void RenderContext::copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize size) const
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -212,7 +212,8 @@ void RenderContext::copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer
     endSingleTimeCommands(commandBuffer);
 }
 
-VkCommandBuffer RenderContext::beginSingleTimeCommands() {
+VkCommandBuffer RenderContext::beginSingleTimeCommands() const
+{
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -231,7 +232,8 @@ VkCommandBuffer RenderContext::beginSingleTimeCommands() {
     return commandBuffer;
 }
 
-void RenderContext::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void RenderContext::endSingleTimeCommands(VkCommandBuffer commandBuffer) const
+{
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -345,17 +347,17 @@ const RenderFrame& RenderContext::getRenderFrame(uint32_t index) const
     return *m_frames.at(index);
 }
 
-const VkSurfaceKHR& RenderContext::surface()
+const VkSurfaceKHR& RenderContext::surface() const
 {
     return m_surface;
 }
 
-const VkPhysicalDevice& RenderContext::physicalDevice()
+const VkPhysicalDevice& RenderContext::physicalDevice() const
 {
     return m_physicalDevice;
 }
 
-const VkDevice& RenderContext::device()
+const VkDevice& RenderContext::device() const
 {
     return m_device;
 }

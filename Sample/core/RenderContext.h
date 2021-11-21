@@ -33,9 +33,9 @@ public:
     void cleanUpSwapChain();
 
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
-    void copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize bufferSize);
-    VkCommandBuffer beginSingleTimeCommands();
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    void copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize bufferSize) const;
+    VkCommandBuffer beginSingleTimeCommands() const;
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
     const SwapChain& swapChain() const;
     const std::vector<VkFramebuffer>& frameBuffers() const;
@@ -43,9 +43,9 @@ public:
     VkSampleCountFlagBits multiSamplingSamples() const;
     const RenderFrame& getRenderFrame(uint32_t index) const;
 
-    const VkSurfaceKHR& surface();
-    const VkPhysicalDevice& physicalDevice();
-    const VkDevice& device();
+    const VkSurfaceKHR& surface() const;
+    const VkPhysicalDevice& physicalDevice() const;
+    const VkDevice& device() const;
     const VkCommandPool& commandPool() const;
     const VkQueue& graphicsQueue() const;
     const VkQueue& presentQueue() const;
