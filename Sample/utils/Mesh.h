@@ -13,6 +13,11 @@ struct VertexData {
     glm::vec3 color;
     glm::vec2 texCoord;
 
+    VertexData() = default;
+
+    VertexData(const glm::vec3& vertexPosition, const glm::vec3& vertexColor, const glm::vec2& vertexUV) :
+        pos(vertexPosition), color(vertexColor), texCoord(vertexUV) {}
+
     bool operator==(const VertexData& other) const {
         return pos == other.pos && color == other.color && texCoord == other.texCoord;
     }

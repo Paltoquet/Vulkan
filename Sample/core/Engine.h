@@ -5,6 +5,7 @@
 #include <utils/TextureLoader.h>
 #include <utils/MatrixBuffer.h>
 #include <utils/SkinMesh.h>
+#include <utils/Quad.h>
 
 #include <memory>
 #include <vector>
