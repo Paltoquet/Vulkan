@@ -14,7 +14,8 @@
 
 Engine::Engine(const VkSurfaceKHR& surface, const VkPhysicalDevice& device):
     m_renderContext(nullptr),
-    m_textureLoader(nullptr)
+    m_textureLoader(nullptr),
+    m_noiseTextureLoader(nullptr)
 {
     m_renderContext = std::make_unique<RenderContext>(surface, device);
 }
@@ -44,6 +45,7 @@ void Engine::initialize(const VkExtent2D& dimension, const SwapChainSupportInfos
 
     // Models data
     m_textureLoader = std::make_unique<TextureLoader>(m_renderContext.get());
+    m_noiseTextureLoader = std::make_unique<NoiseTextureLoader>(m_renderContext.get());
     createDescriptorLayout();
     loadModels();
     loadTextures();
@@ -148,6 +150,7 @@ void Engine::cleanUp()
     }
 
     m_mesh.cleanUp(*m_renderContext);
+    m_cube.cleanUp(*m_renderContext);
     vkDestroyShaderModule(m_renderContext->device(), m_vertTextureShader, nullptr);
     vkDestroyShaderModule(m_renderContext->device(), m_fragTextureShader, nullptr);
     
@@ -332,12 +335,20 @@ void Engine::loadModels()
 void Engine::loadTextures()
 {
     m_textureImageView = m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    VkExtent2D dimension = VkExtent2D({ 256, 256 });
+    VkExtent3D dimension3D = VkExtent3D({ 256, 256, 16 });
+    //m_textureImageView = m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    //m_textureImageView = m_textureLoader->loadNoiseTexture(dimension, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    //m_noiseTexture3D = m_textureLoader->loadNoiseTexture3D(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_noiseTexture3D = m_noiseTextureLoader->loadTexture(VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Engine::loadShaders()
 {
-    m_vertTextureShader = ShaderLoader::loadShader("shaders/vert.spv", m_renderContext->device());
-    m_fragTextureShader = ShaderLoader::loadShader("shaders/frag.spv", m_renderContext->device());
+    //m_vertTextureShader = ShaderLoader::loadShader("shaders/vert.spv", m_renderContext->device());
+    //m_fragTextureShader = ShaderLoader::loadShader("shaders/frag.spv", m_renderContext->device());
+    m_vertTextureShader = ShaderLoader::loadShader("shaders/cloud_vert.spv", m_renderContext->device());
+    m_fragTextureShader = ShaderLoader::loadShader("shaders/cloud_frag.spv", m_renderContext->device());
 }
 
 void Engine::createGraphicsPipeline()
@@ -363,8 +374,10 @@ void Engine::createGraphicsPipeline()
 
     //auto bindingDescription    = m_quad.getBindingDescription();
     //auto attributeDescriptions = m_quad.getAttributeDescriptions();
-    auto bindingDescription = m_mesh.getBindingDescription();
-    auto attributeDescriptions = m_mesh.getAttributeDescriptions();
+    //auto bindingDescription = m_mesh.getBindingDescription();
+    //auto attributeDescriptions = m_mesh.getAttributeDescriptions();
+    auto bindingDescription    = m_cube.getBindingDescription();
+    auto attributeDescriptions = m_cube.getAttributeDescriptions();
 
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -543,13 +556,13 @@ void Engine::createCommandBuffers()
         vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_mainGraphicsPipeline);
 
-        VkBuffer vertexBuffers[] = { m_mesh.vertexBuffer() };
+        VkBuffer vertexBuffers[] = { m_cube.vertexBuffer() };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(m_commandBuffers[i], m_mesh.indexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(m_commandBuffers[i], m_cube.indexBuffer(), 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_mainPipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr);
         //vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_quad.indices().size()), 1, 0, 0, 0);
-        vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_mesh.indices().size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_cube.indices().size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(m_commandBuffers[i]);
 
@@ -602,7 +615,7 @@ void Engine::createDescriptorSet()
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_textureImageView.view();
+        imageInfo.imageView = m_noiseTexture3D.view();
         imageInfo.sampler = m_textureSampler;
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
@@ -681,6 +694,7 @@ void Engine::createTextureSampler()
 void Engine::createMeshBuffers()
 {
     m_mesh.createBuffers(*m_renderContext);
+    m_cube.createBuffers(*m_renderContext);
 }
 
 void Engine::createUniformBuffer()

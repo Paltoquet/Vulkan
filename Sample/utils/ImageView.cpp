@@ -4,13 +4,13 @@
 
 /* --------------------------------- Constructors  --------------------------------- */
 
-ImageView::ImageView(VkDevice device, const Image& image):
+ImageView::ImageView(VkDevice device, const Image& image, VkImageViewType viewType):
     m_imageInfo(image)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image = image.Vkimage;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.viewType = viewType;
     viewInfo.format = image.Vkformat;
     viewInfo.subresourceRange.aspectMask = image.aspectFlag;
     viewInfo.subresourceRange.baseMipLevel = 0;

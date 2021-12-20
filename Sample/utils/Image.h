@@ -17,5 +17,6 @@ public:
     VkImageAspectFlags aspectFlag;
     VkFormat Vkformat;
     uint32_t mipLevels;
+    VkExtent3D textureSize;
 };
 

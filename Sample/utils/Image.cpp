@@ -1,8 +1,8 @@
 #include "Image.h"
 
-
-
-Image::Image()
+Image::Image():
+    Vkimage(VK_NULL_HANDLE),
+    Vkmemory(VK_NULL_HANDLE)
 {
 
 }

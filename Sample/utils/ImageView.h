@@ -8,7 +8,7 @@ class ImageView
 {
 public:
     ImageView() = default;
-    ImageView(VkDevice device, const Image& image);
+    ImageView(VkDevice device, const Image& image, VkImageViewType viewType);
     ~ImageView();
 
 public:
@@ -18,7 +18,7 @@ public:
     VkFormat Vkformat() const;
     uint32_t mipLevels() const;
 
-private:
+public:
     VkImageView m_vkImageView;
     Image m_imageInfo;
 };
