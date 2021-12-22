@@ -3,7 +3,6 @@
 #include "RenderContext.h"
 #include <utils/Camera.h>
 #include <utils/TextureLoader.h>
-#include "utils/NoiseTextureLoader.h"
 #include <utils/MatrixBuffer.h>
 #include <utils/SkinMesh.h>
 #include <utils/Cube.h>
@@ -52,7 +51,6 @@ private:
     // Pipeline
     std::unique_ptr<RenderContext> m_renderContext;
     std::unique_ptr<TextureLoader> m_textureLoader;
-    std::unique_ptr<NoiseTextureLoader> m_noiseTextureLoader;
     VkRenderPass m_mainRenderPass;
     VkPipelineLayout m_mainPipelineLayout;
     VkPipeline m_mainGraphicsPipeline;

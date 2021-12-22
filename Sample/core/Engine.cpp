@@ -14,8 +14,7 @@
 
 Engine::Engine(const VkSurfaceKHR& surface, const VkPhysicalDevice& device):
     m_renderContext(nullptr),
-    m_textureLoader(nullptr),
-    m_noiseTextureLoader(nullptr)
+    m_textureLoader(nullptr)
 {
     m_renderContext = std::make_unique<RenderContext>(surface, device);
 }
@@ -45,7 +44,6 @@ void Engine::initialize(const VkExtent2D& dimension, const SwapChainSupportInfos
 
     // Models data
     m_textureLoader = std::make_unique<TextureLoader>(m_renderContext.get());
-    m_noiseTextureLoader = std::make_unique<NoiseTextureLoader>(m_renderContext.get());
     createDescriptorLayout();
     loadModels();
     loadTextures();
@@ -142,6 +140,7 @@ void Engine::cleanUp()
 
     vkDestroySampler(m_renderContext->device(), m_textureSampler, nullptr);
     m_textureImageView.cleanUp(m_renderContext->device());
+    m_noiseTexture3D.cleanUp(m_renderContext->device());
     vkDestroyDescriptorSetLayout(m_renderContext->device(), m_sceneDescriptorLayout, nullptr);
 
     for (size_t i = 0; i < m_imageAvailableSemaphores.size(); i++) {
@@ -334,13 +333,12 @@ void Engine::loadModels()
 
 void Engine::loadTextures()
 {
-    m_textureImageView = m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-    VkExtent2D dimension = VkExtent2D({ 256, 256 });
-    VkExtent3D dimension3D = VkExtent3D({ 256, 256, 16 });
     //m_textureImageView = m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    VkExtent2D dimension = VkExtent2D({ 256, 256 });
+    VkExtent3D dimension3D = VkExtent3D({ 128, 128, 32 });
+    m_textureImageView = m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     //m_textureImageView = m_textureLoader->loadNoiseTexture(dimension, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-    //m_noiseTexture3D = m_textureLoader->loadNoiseTexture3D(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT);
-    m_noiseTexture3D = m_noiseTextureLoader->loadTexture(VK_IMAGE_ASPECT_COLOR_BIT);
+    m_noiseTexture3D = m_textureLoader->load3DNoiseTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Engine::loadShaders()
@@ -615,6 +613,7 @@ void Engine::createDescriptorSet()
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        //imageInfo.imageView = m_textureImageView.view();
         imageInfo.imageView = m_noiseTexture3D.view();
         imageInfo.sampler = m_textureSampler;
 

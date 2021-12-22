@@ -11,6 +11,8 @@
 #include <noise/BrownianNoise.h>
 #include <noise/BrownianNoise3D.h>
 
+#include <glm/gtx/string_cast.hpp>
+
 TextureLoader::TextureLoader(RenderContext* context):
     m_renderContext(context)
 {
@@ -115,6 +117,155 @@ ImageView TextureLoader::loadNoiseTexture(const VkExtent2D& dimension, const VkF
     //generateMipmaps(imageInfo, dimension.width, dimension.height);
 
     return ImageView(m_renderContext->device(), imageInfo, VK_IMAGE_VIEW_TYPE_2D);
+}
+
+ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect)
+{
+    Image imageInfo;
+    imageInfo.Vkformat = VK_FORMAT_R8_UNORM;
+    imageInfo.Vkmemory = VK_NULL_HANDLE;
+    imageInfo.mipLevels = 1;
+    imageInfo.aspectFlag = aspect;
+    imageInfo.textureSize = dimension;
+    ImageView result;
+
+    // Format support check
+    // 3D texture support in Vulkan is mandatory (in contrast to OpenGL) so no need to check if it's supported
+    VkFormatProperties formatProperties;
+    vkGetPhysicalDeviceFormatProperties(m_renderContext->physicalDevice(), imageInfo.Vkformat, &formatProperties);
+    // Check if format supports transfer
+    if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_DST_BIT))
+    {
+        std::cout << "Error: Device does not support flag TRANSFER_DST for selected texture format!" << std::endl;
+        //return;
+    }
+
+    // Create optimal tiled target image
+    VkImageCreateInfo imageCreateInfo;
+    imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
+    imageCreateInfo.format = imageInfo.Vkformat;
+    imageCreateInfo.mipLevels = imageInfo.mipLevels;
+    imageCreateInfo.arrayLayers = 1;
+    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageCreateInfo.extent.width = imageInfo.textureSize.width;
+    imageCreateInfo.extent.height = imageInfo.textureSize.height;
+    imageCreateInfo.extent.depth = imageInfo.textureSize.depth;
+    // Set initial layout of the image to undefined
+    imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageCreateInfo.pNext = nullptr;
+    imageCreateInfo.flags = 0;
+    vkCreateImage(m_renderContext->device(), &imageCreateInfo, nullptr, &imageInfo.Vkimage);
+
+    // Device local memory to back up image
+    VkMemoryAllocateInfo memAllocInfo{};
+    memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    VkMemoryRequirements memReqs = {};
+    VkBool32 memoryFound;
+    vkGetImageMemoryRequirements(m_renderContext->device(), imageInfo.Vkimage, &memReqs);
+    memAllocInfo.allocationSize = memReqs.size;
+    memAllocInfo.memoryTypeIndex = vk_initializer::findMemoryType(m_renderContext->physicalDevice(), memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    vkAllocateMemory(m_renderContext->device(), &memAllocInfo, nullptr, &imageInfo.Vkmemory);
+    vkBindImageMemory(m_renderContext->device(), imageInfo.Vkimage, imageInfo.Vkmemory, 0);
+
+
+
+    /* --------------------------------- Load Buffers --------------------------------- */
+
+    const uint32_t texMemSize = imageInfo.textureSize.width * imageInfo.textureSize.height * imageInfo.textureSize.depth;
+    BrownianNoise3D noiseGenerator = BrownianNoise3D(glm::ivec3(16, 16, 16), 3);
+
+    uint8_t *data = new uint8_t[texMemSize];
+    memset(data, 0, texMemSize);
+
+    glm::vec3 pixelPos;
+    float noiseValue;
+    for (int32_t z = 0; z < imageInfo.textureSize.depth; z++)
+    {
+        for (int32_t y = 0; y < imageInfo.textureSize.height; y++)
+        {
+            for (int32_t x = 0; x < imageInfo.textureSize.width; x++)
+            {
+                pixelPos = glm::vec3(x, y, z);
+                noiseValue = noiseGenerator.evaluate(pixelPos) * 255.0f;
+                data[x + y * imageInfo.textureSize.width + z * imageInfo.textureSize.width * imageInfo.textureSize.height] = noiseValue;
+            }
+        }
+    }
+
+    // Create a host-visible staging buffer that contains the raw image data
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingMemory;
+    m_renderContext->createBuffer(texMemSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingMemory);
+
+    // Copy texture data into staging buffer
+    uint8_t *mapped;
+    vkMapMemory(m_renderContext->device(), stagingMemory, 0, texMemSize, 0, (void **)&mapped);
+    memcpy(mapped, data, texMemSize);
+    vkUnmapMemory(m_renderContext->device(), stagingMemory);
+
+    VkCommandBuffer copyCmd = m_renderContext->beginSingleTimeCommands();
+    // The sub resource range describes the regions of the image we will be transitioned
+    VkImageSubresourceRange subresourceRange = {};
+    subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    subresourceRange.baseMipLevel = 0;
+    subresourceRange.levelCount = 1;
+    subresourceRange.layerCount = 1;
+
+    // Optimal image will be used as destination for the copy, so we must transfer from our
+    // initial undefined image layout to the transfer destination layout
+    setImageLayout(copyCmd, imageInfo, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    // Setup buffer copy regions
+    VkBufferImageCopy bufferCopyRegion{};
+    bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    bufferCopyRegion.imageSubresource.mipLevel = 0;
+    bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+    bufferCopyRegion.imageSubresource.layerCount = 1;
+    bufferCopyRegion.imageExtent.width = imageInfo.textureSize.width;
+    bufferCopyRegion.imageExtent.height = imageInfo.textureSize.height;
+    bufferCopyRegion.imageExtent.depth = imageInfo.textureSize.depth;
+
+    vkCmdCopyBufferToImage(
+        copyCmd,
+        stagingBuffer,
+        imageInfo.Vkimage,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &bufferCopyRegion);
+
+    // Change texture image layout to shader read after all mip levels have been copied
+    setImageLayout(copyCmd, imageInfo, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    m_renderContext->endSingleTimeCommands(copyCmd);
+    // Clean up staging resources
+    delete[] data;
+    vkFreeMemory(m_renderContext->device(), stagingMemory, nullptr);
+    vkDestroyBuffer(m_renderContext->device(), stagingBuffer, nullptr);
+
+
+    // Create image view
+    VkImageViewCreateInfo view{};
+    view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    view.image = imageInfo.Vkimage;
+    view.viewType = VK_IMAGE_VIEW_TYPE_3D;
+    view.format = imageInfo.Vkformat;
+    view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+    view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    view.subresourceRange.baseMipLevel = 0;
+    view.subresourceRange.baseArrayLayer = 0;
+    view.subresourceRange.layerCount = 1;
+    view.subresourceRange.levelCount = 1;
+    vkCreateImageView(m_renderContext->device(), &view, nullptr, &result.m_vkImageView);
+
+    result.m_imageInfo = imageInfo;
+
+
+    return result;
 }
 
 /* --------------------------------- Private methods --------------------------------- */
