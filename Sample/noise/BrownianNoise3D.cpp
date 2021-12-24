@@ -27,18 +27,18 @@ BrownianNoise3D::~BrownianNoise3D()
 
 float BrownianNoise3D::evaluate(const glm::vec3& pos) const
 {
-    float BrownianNoise3D = 0.0;
+    float value = 0.0;
     float noiseMax = 0.0;
 
     for (size_t i = 0; i < m_nbLayers; ++i)
     {
         float frequency = m_baseFrequency * pow(m_rateOffChanged, i);
         float amplitude = pow(m_rateOffChanged, i);
-        BrownianNoise3D += computeNoise(pos * frequency) / amplitude;
+        value += computeNoise(pos * frequency) / amplitude;
         noiseMax += 1.0 / amplitude;
     }
-    BrownianNoise3D = BrownianNoise3D / noiseMax;
-    return BrownianNoise3D;
+    value = value / noiseMax;
+    return value;
 }
 
 /* --------------------------------- Private methods --------------------------------- */
@@ -47,7 +47,7 @@ float BrownianNoise3D::computeNoise(const glm::vec3& pos) const
 {
     int xi = std::floor(pos.x);
     int yi = std::floor(pos.y);
-    int zi = std::floor(pos.y);
+    int zi = std::floor(pos.z);
 
     float tx = pos.x - xi;
     float ty = pos.y - yi;
@@ -60,8 +60,8 @@ float BrownianNoise3D::computeNoise(const glm::vec3& pos) const
     int rx1 = (rx0 + 1) % m_kernelSize.x;
     int ry0 = yi % m_kernelSize.y;
     int ry1 = (ry0 + 1) % m_kernelSize.y;
-    int rz0 = yi % m_kernelSize.z;
-    int rz1 = (ry0 + 1) % m_kernelSize.z;
+    int rz0 = zi % m_kernelSize.z;
+    int rz1 = (rz0 + 1) % m_kernelSize.z;
 
     // random values at the corners of the cell using permutation table
     const float & c000 = m_kernelData[rz0 * kernelPageSize + ry0 * kernelWidth + rx0];

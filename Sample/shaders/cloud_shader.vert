@@ -14,9 +14,11 @@ layout(binding = 0) uniform UniformBufferObject {
 } ubo;
 
 void main() {
+	//  		 [0; 1]
+	float height = inPosition.z;
 	//           [-0.5, 0.5] -> [-1; 1]  -> [0; 2] -> [0; 1]
-	float depth = (inPosition.y * 2.0 + 1.0) / 2.0;
+	vec3 texturePos = (inPosition * 2.0 + 1.0) / 2.0;
     fragColor = inColor;
-    fragTexCoord = vec3(inTexCoord, depth);
+    fragTexCoord = vec3(texturePos.x, height, texturePos.y);
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
 }
