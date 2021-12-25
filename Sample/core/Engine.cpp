@@ -186,6 +186,8 @@ void Engine::cleanUpSwapchain()
     for (size_t i = 0; i < m_renderContext->swapChain().size(); i++) {
         vkDestroyBuffer(m_renderContext->device(), m_uniformBuffers[i], nullptr);
         vkFreeMemory(m_renderContext->device(), m_uniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(m_renderContext->device(), m_fogBuffers[i], nullptr);
+        vkFreeMemory(m_renderContext->device(), m_fogBufferMemory[i], nullptr);
     }
     vkDestroyDescriptorPool(m_renderContext->device(), m_descriptorPool, nullptr);
 
@@ -205,9 +207,7 @@ void Engine::updateUniformBuffer(const Camera& camera, uint32_t currentImage)
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    glm::mat4 recenter = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, -0.5f));
-    m_matrixBuffer.buffer.model = camera.arcBallModel() * recenter;
+    m_matrixBuffer.buffer.model = camera.arcBallModel();
     //m_matrixBuffer.buffer.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * recenter;
     //m_matrixBuffer.buffer.model = glm::mat4(1.0f); // 
     //m_matrixBuffer.buffer.view = glm::lookAt(glm::vec3(0.0f, 0.0f, -3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
@@ -307,6 +307,7 @@ void Engine::createMainRenderPass()
 void Engine::createDescriptorLayout()
 {
     auto matrixLayoutBinding = m_matrixBuffer.descriptorBinding();
+    auto fogLayoutBinding = m_fog.descriptorBinding();
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
@@ -315,7 +316,7 @@ void Engine::createDescriptorLayout()
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { matrixLayoutBinding, samplerLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { matrixLayoutBinding, samplerLayoutBinding, fogLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -573,11 +574,13 @@ void Engine::createCommandBuffers()
 void Engine::createDescriptorPool()
 {
     uint32_t swapChainImageSize = m_renderContext->swapChain().size();
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 3> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImageSize);
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImageSize);
+    poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImageSize);
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -617,7 +620,12 @@ void Engine::createDescriptorSet()
         imageInfo.imageView = m_noiseTexture3D.view();
         imageInfo.sampler = m_textureSampler;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        VkDescriptorBufferInfo fogInfo{};
+        fogInfo.buffer = m_fogBuffers[i];
+        fogInfo.offset = 0;
+        fogInfo.range = sizeof(CubicFog::CloudData);
+
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = m_descriptorSets[i];
@@ -634,6 +642,14 @@ void Engine::createDescriptorSet()
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = m_descriptorSets[i];
+        descriptorWrites[2].dstBinding = 3;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &fogInfo;
 
         vkUpdateDescriptorSets(m_renderContext->device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -698,13 +714,23 @@ void Engine::createMeshBuffers()
 
 void Engine::createUniformBuffer()
 {
-    VkDeviceSize bufferSize = sizeof(MatrixBuffer::BufferData);
+    VkDeviceSize matrixBufferSize = sizeof(MatrixBuffer::BufferData);
+    VkDeviceSize fogBufferSize = sizeof(CubicFog::CloudData);
 
     uint32_t swapChainImageSize = m_renderContext->swapChain().size();
     m_uniformBuffers.resize(swapChainImageSize);
+    m_fogBuffers.resize(swapChainImageSize);
     m_uniformBuffersMemory.resize(swapChainImageSize);
+    m_fogBufferMemory.resize(swapChainImageSize);
 
     for (size_t i = 0; i < swapChainImageSize; i++) {
-        m_renderContext->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformBuffers[i], m_uniformBuffersMemory[i]);
+        m_renderContext->createBuffer(matrixBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformBuffers[i], m_uniformBuffersMemory[i]);
+        m_renderContext->createBuffer(fogBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_fogBuffers[i], m_fogBufferMemory[i]);
+    
+        // Fill Fog Buffers
+        void* data;
+        vkMapMemory(m_renderContext->device(), m_fogBufferMemory[i], 0, sizeof(MatrixBuffer::BufferData), 0, &data);
+        memcpy(data, &m_fog.shaderData(), sizeof(CubicFog::CloudData));
+        vkUnmapMemory(m_renderContext->device(), m_fogBufferMemory[i]);
     }
 }

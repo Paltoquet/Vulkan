@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RenderContext.h"
+#include <scene/CubicFog.h>
 #include <utils/Camera.h>
 #include <utils/TextureLoader.h>
 #include <utils/MatrixBuffer.h>
@@ -63,7 +64,9 @@ private:
     // Uniforms
     VkDescriptorSetLayout m_sceneDescriptorLayout;
     std::vector<VkBuffer> m_uniformBuffers;
+    std::vector<VkBuffer> m_fogBuffers;
     std::vector<VkDeviceMemory> m_uniformBuffersMemory;
+    std::vector<VkDeviceMemory> m_fogBufferMemory;
     VkDescriptorPool m_descriptorPool;
     std::vector<VkDescriptorSet> m_descriptorSets;
 
@@ -73,6 +76,7 @@ private:
     // Models data
     SkinMesh m_mesh;
     Cube m_cube;
+    CubicFog m_fog;
     ImageView m_textureImageView;
     ImageView m_noiseTexture3D;
     VkSampler m_textureSampler;
