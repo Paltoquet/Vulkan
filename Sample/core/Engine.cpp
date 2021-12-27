@@ -5,6 +5,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <iostream>
 #include <array>
@@ -150,6 +151,7 @@ void Engine::cleanUp()
 
     m_mesh.cleanUp(*m_renderContext);
     m_cube.cleanUp(*m_renderContext);
+    m_fog.mesh().cleanUp(*m_renderContext);
     vkDestroyShaderModule(m_renderContext->device(), m_vertTextureShader, nullptr);
     vkDestroyShaderModule(m_renderContext->device(), m_fragTextureShader, nullptr);
     
@@ -208,13 +210,6 @@ void Engine::updateUniformBuffer(const Camera& camera, uint32_t currentImage)
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
     m_matrixBuffer.buffer.model = camera.arcBallModel();
-    //m_matrixBuffer.buffer.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * recenter;
-    //m_matrixBuffer.buffer.model = glm::mat4(1.0f); // 
-    //m_matrixBuffer.buffer.view = glm::lookAt(glm::vec3(0.0f, 0.0f, -3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
-    //m_matrixBuffer.buffer.view = glm::lookAt(glm::vec3(2.0f, 0.0f, -2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //m_matrixBuffer.buffer.proj = glm::perspective(glm::radians(45.0f), m_renderContext->width() / (float)m_renderContext->height(), 0.1f, 10.0f);
-    //m_matrixBuffer.buffer.proj = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 10.0f);
-    //m_matrixBuffer.buffer.proj[1][1] = -1.0f;
 
     m_matrixBuffer.buffer.view = camera.viewMatrix();
     m_matrixBuffer.buffer.proj = camera.projectionMatrix();
@@ -347,7 +342,7 @@ void Engine::loadTextures()
 {
     //m_textureImageView = m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     VkExtent2D dimension = VkExtent2D({ 256, 256 });
-    VkExtent3D dimension3D = VkExtent3D({ 128, 128, 32 });
+    VkExtent3D dimension3D = VkExtent3D({ 48, 48, 64});
     m_textureImageView = m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     //m_textureImageView = m_textureLoader->loadNoiseTexture(dimension, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     m_noiseTexture3D = m_textureLoader->load3DNoiseTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -463,8 +458,8 @@ void Engine::createGraphicsPipeline()
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};

@@ -1,4 +1,6 @@
 #include "CubicFog.h"
+#include <iostream>
+#include <glm/gtx/string_cast.hpp>
 
 CubicFog::CubicFog()
 {

@@ -137,7 +137,6 @@ ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImage
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_DST_BIT))
     {
         std::cout << "Error: Device does not support flag TRANSFER_DST for selected texture format!" << std::endl;
-        //return;
     }
 
     // Create optimal tiled target image

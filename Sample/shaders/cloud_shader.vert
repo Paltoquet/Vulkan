@@ -6,7 +6,7 @@ layout(location = 2) in vec2 inTexCoord;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec3 fragTexCoord;
-layout(location = 2) out vec3 cameraDirection;
+layout(location = 2) out vec3 worldPosition;
 
 layout(binding = 0) uniform UniformBufferObject {
     mat4 model;
@@ -15,8 +15,8 @@ layout(binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(binding = 3) uniform CloudData {
-    vec3 worldCamera;
-    vec3[24] planes;
+    vec4 worldCamera;
+    vec4[18] planes;
 } cloud;
 
 void main() {
@@ -24,6 +24,6 @@ void main() {
 	vec3 texturePos = (inPosition * 2.0 + 1.0) / 2.0;
     fragColor = inColor;
     fragTexCoord = vec3(texturePos.x, texturePos.z, texturePos.y);
-    cameraDirection = inPosition - cloud.worldCamera;
+    worldPosition = inPosition;
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
 }
