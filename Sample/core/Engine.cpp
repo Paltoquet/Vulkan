@@ -220,10 +220,21 @@ void Engine::updateUniformBuffer(const Camera& camera, uint32_t currentImage)
     m_matrixBuffer.buffer.proj = camera.projectionMatrix();
     m_matrixBuffer.buffer.proj[1][1] *= -1;
 
-    void* data;
-    vkMapMemory(m_renderContext->device(), m_uniformBuffersMemory[currentImage], 0, sizeof(MatrixBuffer::BufferData), 0, &data);
-    memcpy(data, &m_matrixBuffer.buffer, sizeof(MatrixBuffer::BufferData));
+    void* matrixData;
+    vkMapMemory(m_renderContext->device(), m_uniformBuffersMemory[currentImage], 0, sizeof(MatrixBuffer::BufferData), 0, &matrixData);
+    memcpy(matrixData, &m_matrixBuffer.buffer, sizeof(MatrixBuffer::BufferData));
     vkUnmapMemory(m_renderContext->device(), m_uniformBuffersMemory[currentImage]);
+
+    void* fogData;
+    vkMapMemory(m_renderContext->device(), m_fogBufferMemory[currentImage], 0, sizeof(CubicFog::CloudData), 0, &fogData);
+    auto shaderData = m_fog.shaderData();
+    glm::mat3 rot = camera.arcBallModel();
+    rot = glm::inverse(rot);
+    auto worldEye = rot * camera.eye();
+    shaderData.worldCamera = glm::vec4(worldEye, 1.0);
+
+    memcpy(fogData, &shaderData, sizeof(CubicFog::CloudData));
+    vkUnmapMemory(m_renderContext->device(), m_fogBufferMemory[currentImage]);
 }
 
 void Engine::createMainRenderPass()
@@ -726,11 +737,5 @@ void Engine::createUniformBuffer()
     for (size_t i = 0; i < swapChainImageSize; i++) {
         m_renderContext->createBuffer(matrixBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformBuffers[i], m_uniformBuffersMemory[i]);
         m_renderContext->createBuffer(fogBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_fogBuffers[i], m_fogBufferMemory[i]);
-    
-        // Fill Fog Buffers
-        void* data;
-        vkMapMemory(m_renderContext->device(), m_fogBufferMemory[i], 0, sizeof(MatrixBuffer::BufferData), 0, &data);
-        memcpy(data, &m_fog.shaderData(), sizeof(CubicFog::CloudData));
-        vkUnmapMemory(m_renderContext->device(), m_fogBufferMemory[i]);
     }
 }
