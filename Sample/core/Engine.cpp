@@ -386,8 +386,8 @@ void Engine::createGraphicsPipeline()
     //auto attributeDescriptions = m_quad.getAttributeDescriptions();
     //auto bindingDescription = m_mesh.getBindingDescription();
     //auto attributeDescriptions = m_mesh.getAttributeDescriptions();
-    auto bindingDescription    = m_cube.getBindingDescription();
-    auto attributeDescriptions = m_cube.getAttributeDescriptions();
+    auto bindingDescription    = m_fog.mesh().getBindingDescription();
+    auto attributeDescriptions = m_fog.mesh().getAttributeDescriptions();
 
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -566,13 +566,13 @@ void Engine::createCommandBuffers()
         vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_mainGraphicsPipeline);
 
-        VkBuffer vertexBuffers[] = { m_cube.vertexBuffer() };
+        VkBuffer vertexBuffers[] = { m_fog.mesh().vertexBuffer() };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(m_commandBuffers[i], m_cube.indexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(m_commandBuffers[i], m_fog.mesh().indexBuffer(), 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_mainPipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr);
         //vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_quad.indices().size()), 1, 0, 0, 0);
-        vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_cube.indices().size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(m_commandBuffers[i], static_cast<uint32_t>(m_fog.mesh().indices().size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(m_commandBuffers[i]);
 
@@ -721,6 +721,7 @@ void Engine::createMeshBuffers()
 {
     m_mesh.createBuffers(*m_renderContext);
     m_cube.createBuffers(*m_renderContext);
+    m_fog.mesh().createBuffers(*m_renderContext);
 }
 
 void Engine::createUniformBuffer()
