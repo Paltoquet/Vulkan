@@ -25,6 +25,8 @@ public:
     void resize(int width, int height, const SwapChainSupportInfos& swapChainSupport);
     void cleanUp();
 
+    CubicFog& cubicFog();
+
 public:
     RenderContext* renderContext();
 

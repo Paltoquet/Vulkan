@@ -23,6 +23,7 @@ Engine::Engine(const VkSurfaceKHR& surface, const VkPhysicalDevice& device):
 
 Engine::~Engine()
 {
+
 }
 
 /* --------------------------------- Public methods --------------------------------- */
@@ -209,11 +210,12 @@ void Engine::updateUniformBuffer(const Camera& camera, uint32_t currentImage)
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-    m_matrixBuffer.buffer.model = camera.arcBallModel();
 
+    m_matrixBuffer.buffer.model = camera.arcBallModel() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.8f));
     m_matrixBuffer.buffer.view = camera.viewMatrix();
     m_matrixBuffer.buffer.proj = camera.projectionMatrix();
     m_matrixBuffer.buffer.proj[1][1] *= -1;
+    m_matrixBuffer.buffer.time = time;
 
     void* matrixData;
     vkMapMemory(m_renderContext->device(), m_uniformBuffersMemory[currentImage], 0, sizeof(MatrixBuffer::BufferData), 0, &matrixData);
@@ -734,4 +736,9 @@ void Engine::createUniformBuffer()
         m_renderContext->createBuffer(matrixBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformBuffers[i], m_uniformBuffersMemory[i]);
         m_renderContext->createBuffer(fogBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_fogBuffers[i], m_fogBufferMemory[i]);
     }
+}
+
+CubicFog& Engine::cubicFog()
+{
+    return m_fog;
 }
