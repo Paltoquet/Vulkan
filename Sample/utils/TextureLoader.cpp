@@ -163,7 +163,6 @@ ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImage
     VkMemoryAllocateInfo memAllocInfo{};
     memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     VkMemoryRequirements memReqs = {};
-    VkBool32 memoryFound;
     vkGetImageMemoryRequirements(m_renderContext->device(), imageInfo.Vkimage, &memReqs);
     memAllocInfo.allocationSize = memReqs.size;
     memAllocInfo.memoryTypeIndex = vk_initializer::findMemoryType(m_renderContext->physicalDevice(), memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

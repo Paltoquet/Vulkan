@@ -1,10 +1,21 @@
 #version 450
 
+/* --------------------------- Varying --------------------------- */
+
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragTexCoord;
 layout(location = 2) in vec3 worldPosition;
 
 layout(location = 0) out vec4 outColor;
+
+/* --------------------------- Uniforms --------------------------- */
+
+layout(binding = 0) uniform UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+    float time;
+} ubo;
 
 layout(binding = 1) uniform sampler3D texSampler3D;
 layout(binding = 3) uniform CloudData {
@@ -56,6 +67,14 @@ bool planeLineIntersection(vec3 P0, vec3 P1, vec3 P2, vec3 la, vec3 lb, inout ve
     return insideFace /*&& insideSegment*/;
 }
 
+float sample3DTexture(vec3 pos)
+{
+    float speed = 0.12;
+    // Change depth value for adding a scrolling effect
+    pos.z += speed * ubo.time;
+    float noiseValue = texture(texSampler3D, pos).r;
+    return noiseValue;
+}
 
 void main() {
     float noiseValue = texture(texSampler3D, fragTexCoord).r;
@@ -93,13 +112,15 @@ void main() {
         vec3 p = first + c * direction;
         //[-0.5, 0.5] -> [-1; 1]  -> [0; 2] -> [0; 1]
         p = (p * 2.0 + 1.0) / 2.0;
-        float noiseValue = texture(texSampler3D, p).r;
+        float noiseValue = sample3DTexture(p);
         if(noiseValue > insideTreshold){
             accumulation += distanceOffset;
         }
     }
 
     noiseValue = exp(-accumulation / opacity);
+    noiseValue = clamp(noiseValue, 0.0, 1.0);
+    noiseValue = 1.0 - noiseValue;
     outColor = vec4(noiseValue, noiseValue, noiseValue, 1.0);
     //outColor = vec4(fragTexCoord.z, fragTexCoord.z, fragTexCoord.z, 1.0);
     //outColor = vec4(fragTexCoord.x, fragTexCoord.y, 0.0, 1.0);
