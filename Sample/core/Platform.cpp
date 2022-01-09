@@ -100,6 +100,10 @@ void Platform::mouseScroll(double scrollDelta)
     if (m_cameraController) {
         m_cameraController->mouseScroll(scrollDelta);
     }
+    /*float currentOpacity = m_engine->cubicFog().fogDensity();
+    currentOpacity += scrollDelta / 20.0f;
+    m_engine->cubicFog().setFogDensity(currentOpacity);*/
+    //std::cout << "scroll Delta " << currentOpacity << std::endl;
 }
 
 void Platform::cleanUp()

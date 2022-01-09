@@ -8,16 +8,17 @@ layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec3 fragTexCoord;
 layout(location = 2) out vec3 worldPosition;
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
     float time;
 } ubo;
 
-layout(binding = 3) uniform CloudData {
+layout(set = 1, binding = 3) uniform CloudData {
     vec4 worldCamera;
     vec4[18] planes;
+    float fogDensity;
 } cloud;
 
 void main() {

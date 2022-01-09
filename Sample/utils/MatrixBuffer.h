@@ -18,12 +18,9 @@ public:
     ~MatrixBuffer();
 
 public:
-    const VkDescriptorSetLayoutBinding& descriptorBinding() const;
+    static VkDescriptorSetLayoutBinding descriptorBinding();
 
 public:
     BufferData buffer;
-
-private:
-    VkDescriptorSetLayoutBinding m_descriptorBinding;
 };
 

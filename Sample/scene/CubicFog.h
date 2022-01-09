@@ -1,36 +1,31 @@
 #pragma once
 
 #include <utils/Cube.h>
+#include "SceneObject.h"
+#include "FogMaterial.h"
+
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <vector>
 #include <array>
 
-class CubicFog
+class CubicFog : public SceneObject
 {
 public:
-    CubicFog();
+    CubicFog(Cube& mesh, FogMaterial& material);
     ~CubicFog();
 
 public:
-    struct CloudData {
-        glm::vec4 worldCamera;
-        // Should be an array of vec3, but vulkan apparently sucks at indexing arrays of vector3 due to alignment rounded to 16
-        // Extension GL_EXT_scalar_block_layout might get it worked out, but why ???????
-        glm::vec4 planes[18];
-        alignas(16) float fogDensity;
-    };
+    void update(RenderContext& renderContex, Camera& camera, const DescriptorEntry& descriptorEntry) override;
 
-public:
-    Cube& mesh();
-    const VkDescriptorSetLayoutBinding& descriptorBinding() const;
-    CloudData& shaderData();
-
+    Mesh* getMesh() override;
+    Material* getMaterial() override;
+    FogMaterial::CloudData* shaderData();
     void setFogDensity(float density);
     float fogDensity() const;
 
 private:
-    Cube m_mesh;
-    CloudData m_shaderData;
-    VkDescriptorSetLayoutBinding m_descriptorBinding;
+    Cube& m_mesh;
+    FogMaterial& m_material;
+    FogMaterial::CloudData m_shaderData;
 };

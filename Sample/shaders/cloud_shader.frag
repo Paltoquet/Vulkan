@@ -10,18 +10,22 @@ layout(location = 0) out vec4 outColor;
 
 /* --------------------------- Uniforms --------------------------- */
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
     float time;
 } ubo;
 
-layout(binding = 1) uniform sampler3D texSampler3D;
-layout(binding = 3) uniform CloudData {
+layout(set = 1, binding = 1) uniform sampler3D texSampler3D;
+
+layout(set = 1, binding = 3) uniform CloudData {
     vec4 worldCamera;
     vec4[18] planes;
+    float fogDensity;
 } cloud;
+
+
 /*
   Find the intersection of a plane and a line.
   Parameters:
@@ -100,10 +104,9 @@ void main() {
     vec3 first = intersections[0].y < intersections[1].y ? intersections[0] : intersections[1];
     vec3 second = intersections[0].y < intersections[1].y ? intersections[1] : intersections[0];
     vec3 direction = second - first;
-    float nbSamples = 64;
+    float nbSamples = 128;
     float insideTreshold = 0.6;
     vec3 lightColor = vec3(1.0, 1.0, 1.0);
-    float opacity = 0.55;
     float accumulation = 0.0;
     float distanceOffset = length(direction) / nbSamples;
 
@@ -118,7 +121,7 @@ void main() {
         }
     }
 
-    noiseValue = exp(-accumulation / opacity);
+    noiseValue = exp(-accumulation / cloud.fogDensity);
     noiseValue = clamp(noiseValue, 0.0, 1.0);
     noiseValue = 1.0 - noiseValue;
     outColor = vec4(noiseValue, noiseValue, noiseValue, 1.0);
