@@ -24,9 +24,11 @@ public:
     void initialize(const std::vector<Material*>& materials);
     void cleanUp(RenderContext& renderContext);
     DescriptorEntry& getDescriptorEntry(MaterialID materialId);
+    DescriptorEntry& getGlobalDescriptorEntry();
 
 private:
     std::unordered_map<MaterialID, DescriptorEntry> m_descriptors;
+    DescriptorEntry m_globalDescriptorEntry;
 };
 
 class DescriptorTable 
@@ -52,7 +54,5 @@ private:
     VkDescriptorPool m_descriptorPool;
     std::vector<FrameDescriptor> m_frameDescriptors;
     std::vector<Material*> m_materials;
-
     VkDescriptorSetLayout m_globalUniformDescriptorLayout;
-    std::vector<DescriptorEntry> m_globalDescriptorEntries;
 };

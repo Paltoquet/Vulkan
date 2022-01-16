@@ -20,11 +20,18 @@ void FrameDescriptor::cleanUp(RenderContext& renderContext)
         vkDestroyBuffer(renderContext.device(), entry.buffer, nullptr);
         vkFreeMemory(renderContext.device(), entry.memory, nullptr);
     }
+    vkDestroyBuffer(renderContext.device(), m_globalDescriptorEntry.buffer, nullptr);
+    vkFreeMemory(renderContext.device(), m_globalDescriptorEntry.memory, nullptr);
 }
 
 DescriptorEntry& FrameDescriptor::getDescriptorEntry(MaterialID materialId)
 {
     return m_descriptors.at(materialId);
+}
+
+DescriptorEntry& FrameDescriptor::getGlobalDescriptorEntry()
+{
+    return m_globalDescriptorEntry;
 }
 
 /* --------------------------------- DescriptorTable --------------------------------- */
@@ -92,19 +99,18 @@ void DescriptorTable::createDescriptorBuffers()
     uint32_t swapChainImageSize = m_renderContext.swapChain().size();
     VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    // Global descriptor
+    // Frame descriptor
     VkDeviceSize matrixBufferSize = sizeof(MatrixBuffer::BufferData);
-    m_globalDescriptorEntries.resize(swapChainImageSize);
-    for (auto& descriptorEntry : m_globalDescriptorEntries) {
-        m_renderContext.createBuffer(matrixBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, memoryPropertyFlags, descriptorEntry.buffer, descriptorEntry.memory);
-    }
-
-    // Material descriptors
-    // To be moved in initiliaze
     m_frameDescriptors.resize(swapChainImageSize);
 
     for (auto& frameDescriptor : m_frameDescriptors) {
         frameDescriptor.initialize(m_materials);
+
+        // global descriptor
+        auto& globalDescriptor = frameDescriptor.getGlobalDescriptorEntry();
+        m_renderContext.createBuffer(matrixBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, memoryPropertyFlags, globalDescriptor.buffer, globalDescriptor.memory);
+
+        // material descriptor
         for (auto& material : m_materials) {
             auto& descriptorEntry = frameDescriptor.getDescriptorEntry(material->materialId());
             material->createDescriptorBuffer(m_renderContext, descriptorEntry.buffer, descriptorEntry.memory);
@@ -117,19 +123,20 @@ void DescriptorTable::createFrameDescriptors()
     uint32_t swapChainImageSize = m_renderContext.swapChain().size();
 
     /* ------------------------- Create Descriptor ------------------------- */
-    for (auto& globalDescriptor : m_globalDescriptorEntries) {
+    for (auto& frameDescriptor : m_frameDescriptors) {
+
+        // Global Uniform Descriptors
         VkDescriptorSetAllocateInfo allocInfo{};
+        auto& globalDescriptorEntry = frameDescriptor.getGlobalDescriptorEntry();
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_descriptorPool;
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = &m_globalUniformDescriptorLayout;
-        if (vkAllocateDescriptorSets(m_renderContext.device(), &allocInfo, &globalDescriptor.descriptorSet) != VK_SUCCESS) {
+        if (vkAllocateDescriptorSets(m_renderContext.device(), &allocInfo, &globalDescriptorEntry.descriptorSet) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
-    }
 
-    for (auto& frameDescriptor : m_frameDescriptors) {
-
+        // Material's descriptors
         for (auto& material : m_materials) {
             DescriptorEntry& descriptorEntry = frameDescriptor.getDescriptorEntry(material->materialId());
             std::vector<VkDescriptorSetLayout> descriptorLayout = { material->descriptorLayout() };
@@ -144,50 +151,43 @@ void DescriptorTable::createFrameDescriptors()
             }
         }
     }
-
     /* ------------------------- Fill Descriptor ------------------------- */
 
     std::vector<VkWriteDescriptorSet> descriptorWrites;
-    for (size_t i = 0; i < m_globalDescriptorEntries.size(); i++) {
+    for (auto& frameDescriptor : m_frameDescriptors) {
+
+        auto& globalDescriptorEntry = frameDescriptor.getGlobalDescriptorEntry();
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_globalDescriptorEntries.at(i).buffer;
+        bufferInfo.buffer = globalDescriptorEntry.buffer;
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(MatrixBuffer::BufferData);
-
         VkWriteDescriptorSet descriptorWrite;
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_globalDescriptorEntries.at(i).descriptorSet;
+        descriptorWrite.dstSet = globalDescriptorEntry.descriptorSet;
         descriptorWrite.dstBinding = 0;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pBufferInfo = &bufferInfo;
-
         descriptorWrites.push_back(descriptorWrite);
-    }
 
-    vkUpdateDescriptorSets(m_renderContext.device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-
-    for (auto& frameDescriptor : m_frameDescriptors) {
+        // Materials
         for (auto& material : m_materials) {
             DescriptorEntry& descriptorEntry = frameDescriptor.getDescriptorEntry(material->materialId());
             material->updateDescriptorSet(m_renderContext, descriptorEntry.descriptorSet, descriptorEntry.buffer);
         }
     }
+
+    vkUpdateDescriptorSets(m_renderContext.device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
 void DescriptorTable::cleanUp()
 {
     vkDestroyDescriptorSetLayout(m_renderContext.device(), m_globalUniformDescriptorLayout, nullptr);
-    for (auto globalDescriptorIt : m_globalDescriptorEntries) {
-        vkDestroyBuffer(m_renderContext.device(), globalDescriptorIt.buffer, nullptr);
-        vkFreeMemory(m_renderContext.device(), globalDescriptorIt.memory, nullptr);
-    }
     for (auto& frameDescriptor : m_frameDescriptors) {
         frameDescriptor.cleanUp(m_renderContext);
     }
     m_frameDescriptors.clear();
-
     vkDestroyDescriptorPool(m_renderContext.device(), m_descriptorPool, nullptr);
 }
 
@@ -203,7 +203,7 @@ FrameDescriptor& DescriptorTable::getFrameDescriptor(size_t frameIndex)
 
 DescriptorEntry& DescriptorTable::getGlobalDescriptor(size_t frameIndex)
 {
-    return m_globalDescriptorEntries.at(frameIndex);
+    return m_frameDescriptors.at(frameIndex).getGlobalDescriptorEntry();
 }
 
 VkDescriptorSetLayout DescriptorTable::globalDescriptorLayout() const
