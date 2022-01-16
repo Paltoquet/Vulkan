@@ -25,33 +25,29 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
     /* -------------- Init Meshes -------------- */
     auto cube = std::make_unique<Cube>();
     cube->createBuffers(renderContext);
+    Cube* cubePtr = cube.get();
     m_meshes.push_back(std::move(cube));
-
-
-    /* -------------- Init Materials -------------- */
-    VkShaderModule fogVertexTextureShader = ShaderLoader::loadShader("shaders/cloud_vert.spv", renderContext.device());
-    VkShaderModule fogFragmentTextureShader = ShaderLoader::loadShader("shaders/cloud_frag.spv", renderContext.device());
-    m_materials.push_back(std::make_unique<FogMaterial>(renderContext.device(), fogVertexTextureShader, fogFragmentTextureShader));
-
-
-    // reference are lost when updating a vector so we need to fetch the mesh and material by index and use of dynamic_cast
-    // need to find a proper architecture for sceneObject initialization
-    /* -------------- Init SceneObjects -------------- */
-    Cube* currentCube = dynamic_cast<Cube*>(m_meshes.at(0).get());
-    FogMaterial* fogMaterial = dynamic_cast<FogMaterial*>(m_materials.at(0).get());
-    auto fogObject = std::make_unique<CubicFog>(*currentCube, *fogMaterial);
-    m_sceneObjects.push_back(std::move(fogObject));
 
     /* -------------- Textures -------------- */
     VkExtent2D dimension = VkExtent2D({ 256, 256 });
     VkExtent3D dimension3D = VkExtent3D({ 48, 48, 64 });
 
-    m_textures.push_back(m_textureLoader->load3DNoiseTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT));
+    ImageView noiseTexture3D = m_textureLoader->load3DNoiseTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT);
+    m_textures.push_back(noiseTexture3D);
     m_textures.push_back(m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
 
-    fogMaterial->createTextureSampler(renderContext, m_textures.at(0));
+    /* -------------- Init Materials -------------- */
+    VkShaderModule fogVertexTextureShader = ShaderLoader::loadShader("shaders/cloud_vert.spv", renderContext.device());
+    VkShaderModule fogFragmentTextureShader = ShaderLoader::loadShader("shaders/cloud_frag.spv", renderContext.device());
+    auto fogMaterial = std::make_unique<FogMaterial>(renderContext.device(), fogVertexTextureShader, fogFragmentTextureShader);
+    FogMaterial* fogMaterialPtr = fogMaterial.get();
+    fogMaterialPtr->createTextureSampler(renderContext, noiseTexture3D);
+    m_materials.push_back(std::move(fogMaterial));
+    descriptorTable.addMaterial(fogMaterialPtr);
 
-    descriptorTable.addMaterial(fogMaterial);
+    /* -------------- Init SceneObjects -------------- */
+    auto fogObject = std::make_unique<CubicFog>(*cubePtr, *fogMaterialPtr);
+    m_sceneObjects.push_back(std::move(fogObject));
 }
 
 void RenderScene::createGraphicPipelines(RenderContext& renderContext, VkRenderPass renderPass, DescriptorTable& descriptorTable)
