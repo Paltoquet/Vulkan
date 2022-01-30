@@ -12,6 +12,7 @@ public:
 public:
     ImageView loadTexture(const std::string& path, const VkFormat& format, VkImageAspectFlags aspect);
     ImageView loadNoiseTexture(const VkExtent2D& dimension, const VkFormat& format, VkImageAspectFlags aspect);
+    ImageView loadWorleyNoiseTexture(const VkExtent2D& dimension, const VkFormat& format, VkImageAspectFlags aspect);
     ImageView load3DNoiseTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect);
 
 private:

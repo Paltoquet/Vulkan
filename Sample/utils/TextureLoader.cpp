@@ -10,6 +10,7 @@
 
 #include <noise/BrownianNoise.h>
 #include <noise/BrownianNoise3D.h>
+#include <noise/WorleyNoise3D.h>
 
 #include <glm/gtx/string_cast.hpp>
 
@@ -73,7 +74,7 @@ ImageView TextureLoader::loadNoiseTexture(const VkExtent2D& dimension, const VkF
     imageInfo.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(dimension.width, dimension.height)))) + 1;
     imageInfo.aspectFlag = aspect;
 
-    BrownianNoise noiseGenerator = BrownianNoise(glm::ivec2(64, 64), 3);
+    BrownianNoise noiseGenerator = BrownianNoise(glm::ivec2(64, 64), 4);
     noiseDatas.resize(imageSize);
 
     glm::vec2 pixelPos;
@@ -110,11 +111,68 @@ ImageView TextureLoader::loadNoiseTexture(const VkExtent2D& dimension, const VkF
     setImageLayout(copyCmd, imageInfo, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     copyBufferToImage(copyCmd, stagingBuffer, imageInfo.Vkimage, static_cast<uint32_t>(dimension.width), static_cast<uint32_t>(dimension.height));
     setImageLayout(copyCmd, imageInfo, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    //generateMipmaps(imageInfo, dimension.width, dimension.height);
     m_renderContext->endSingleTimeCommands(copyCmd);
 
     vkDestroyBuffer(m_renderContext->device(), stagingBuffer, nullptr);
     vkFreeMemory(m_renderContext->device(), stagingBufferMemory, nullptr);
-    //generateMipmaps(imageInfo, dimension.width, dimension.height);
+
+    return ImageView(m_renderContext->device(), imageInfo, VK_IMAGE_VIEW_TYPE_2D);
+}
+
+ImageView TextureLoader::loadWorleyNoiseTexture(const VkExtent2D& dimension, const VkFormat& format, VkImageAspectFlags aspect)
+{
+    Image imageInfo;
+    std::vector<unsigned char> noiseDatas;
+    VkDeviceSize imageSize = dimension.width * dimension.height * 4;
+    imageInfo.Vkformat = format;
+    imageInfo.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(dimension.width, dimension.height)))) + 1;
+    imageInfo.aspectFlag = aspect;
+
+    WorleyNoise3D worleyGenerator = WorleyNoise3D(glm::ivec3(8, 8, 3));
+    noiseDatas.resize(imageSize);
+
+    float width  = static_cast<float>(dimension.width);
+    float height = static_cast<float>(dimension.height);
+    glm::vec3 pixelPos;
+    float noiseValue;
+    unsigned char value;
+    size_t index;
+    for (size_t j = 0; j < dimension.height; j++) {
+        for (size_t i = 0; i < dimension.width; i++) {
+            pixelPos = glm::vec3(i / width, j / height, 0.0f);
+            index = (j * dimension.width + i) * 4;
+            noiseValue = worleyGenerator.evaluate(pixelPos, 6.0f) * 255;
+            value = static_cast<unsigned char>(noiseValue);
+            noiseDatas[index] = value;
+            noiseDatas[index + 1] = value;
+            noiseDatas[index + 2] = value;
+            noiseDatas[index + 3] = 255;
+        }
+    }
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    m_renderContext->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    void* data;
+    vkMapMemory(m_renderContext->device(), stagingBufferMemory, 0, imageSize, 0, &data);
+    memcpy(data, noiseDatas.data(), static_cast<size_t>(imageSize));
+    vkUnmapMemory(m_renderContext->device(), stagingBufferMemory);
+
+    vk_initializer::createImage(m_renderContext->device(), m_renderContext->physicalDevice(), dimension.width, dimension.height, imageInfo.mipLevels, VK_SAMPLE_COUNT_1_BIT, imageInfo.Vkformat, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        imageInfo.Vkimage, imageInfo.Vkmemory);
+
+    VkCommandBuffer copyCmd = m_renderContext->beginSingleTimeCommands();
+
+    setImageLayout(copyCmd, imageInfo, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    copyBufferToImage(copyCmd, stagingBuffer, imageInfo.Vkimage, static_cast<uint32_t>(dimension.width), static_cast<uint32_t>(dimension.height));
+    //setImageLayout(copyCmd, imageInfo, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    generateMipmaps(copyCmd, imageInfo, dimension.width, dimension.height);
+    m_renderContext->endSingleTimeCommands(copyCmd);
+
+    vkDestroyBuffer(m_renderContext->device(), stagingBuffer, nullptr);
+    vkFreeMemory(m_renderContext->device(), stagingBufferMemory, nullptr);
 
     return ImageView(m_renderContext->device(), imageInfo, VK_IMAGE_VIEW_TYPE_2D);
 }
@@ -170,27 +228,31 @@ ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImage
     vkAllocateMemory(m_renderContext->device(), &memAllocInfo, nullptr, &imageInfo.Vkmemory);
     vkBindImageMemory(m_renderContext->device(), imageInfo.Vkimage, imageInfo.Vkmemory, 0);
 
-
-
     /* --------------------------------- Load Buffers --------------------------------- */
 
     const uint32_t texMemSize = imageInfo.textureSize.width * imageInfo.textureSize.height * imageInfo.textureSize.depth;
     BrownianNoise3D noiseGenerator = BrownianNoise3D(glm::ivec3(16, 16, 16), 3);
+    WorleyNoise3D worleyGenerator = WorleyNoise3D(glm::ivec3(8, 8, 3));
 
     uint8_t *data = new uint8_t[texMemSize];
     memset(data, 0, texMemSize);
 
     glm::vec3 pixelPos;
     float noiseValue;
-    for (int32_t z = 0; z < imageInfo.textureSize.depth; z++)
+    float worleyValue;
+    glm::vec3 downscaleFactor = glm::vec3(imageInfo.textureSize.width, imageInfo.textureSize.height, imageInfo.textureSize.depth);
+    downscaleFactor /= 2.0f;
+    for (uint32_t z = 0; z < imageInfo.textureSize.depth; z++)
     {
-        for (int32_t y = 0; y < imageInfo.textureSize.height; y++)
+        for (uint32_t y = 0; y < imageInfo.textureSize.height; y++)
         {
-            for (int32_t x = 0; x < imageInfo.textureSize.width; x++)
+            for (uint32_t x = 0; x < imageInfo.textureSize.width; x++)
             {
-                pixelPos = glm::vec3(x, y, z);
+                pixelPos = glm::vec3(x, y, z); // / 64.0f;
                 noiseValue = noiseGenerator.evaluate(pixelPos) * 255.0f;
                 data[x + y * imageInfo.textureSize.width + z * imageInfo.textureSize.width * imageInfo.textureSize.height] = noiseValue;
+                //worleyValue = worleyGenerator.evaluate(pixelPos, 12.0f) * 255.0f;
+                //data[x + y * imageInfo.textureSize.width + z * imageInfo.textureSize.width * imageInfo.textureSize.height] = worleyValue;
             }
         }
     }

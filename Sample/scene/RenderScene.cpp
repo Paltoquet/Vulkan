@@ -1,11 +1,13 @@
 #include "RenderScene.h"
 
 #include "CubicFog.h"
+#include "QuadTexture.h"
 
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>
 #include <utils/MatrixBuffer.h>
 #include <utils/ShaderLoader.h>
+#include <utils/Quad.h>
 
 RenderScene::RenderScene():
     m_textureLoader(nullptr)
@@ -26,15 +28,24 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
     auto cube = std::make_unique<Cube>();
     cube->createBuffers(renderContext);
     Cube* cubePtr = cube.get();
+
+    auto quad = std::make_unique<Quad>();
+    quad->createBuffers(renderContext);
+    Quad* quadPtr = quad.get();
+
     m_meshes.push_back(std::move(cube));
+    m_meshes.push_back(std::move(quad));
 
     /* -------------- Textures -------------- */
-    VkExtent2D dimension = VkExtent2D({ 256, 256 });
+    VkExtent2D dimension = VkExtent2D({ 512, 512 });
     VkExtent3D dimension3D = VkExtent3D({ 48, 48, 64 });
 
     ImageView noiseTexture3D = m_textureLoader->load3DNoiseTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT);
+    ImageView worleyNoiseTexture = m_textureLoader->loadWorleyNoiseTexture(dimension, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     m_textures.push_back(noiseTexture3D);
+    m_textures.push_back(worleyNoiseTexture);
     m_textures.push_back(m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
+
 
     /* -------------- Init Materials -------------- */
     VkShaderModule fogVertexTextureShader = ShaderLoader::loadShader("shaders/cloud_vert.spv", renderContext.device());
@@ -42,12 +53,23 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
     auto fogMaterial = std::make_unique<FogMaterial>(renderContext.device(), fogVertexTextureShader, fogFragmentTextureShader);
     FogMaterial* fogMaterialPtr = fogMaterial.get();
     fogMaterialPtr->createTextureSampler(renderContext, noiseTexture3D);
+
+    VkShaderModule textureVertexTextureShader = ShaderLoader::loadShader("shaders/texture_vert.spv", renderContext.device());
+    VkShaderModule textureFragmentTextureShader = ShaderLoader::loadShader("shaders/texture_frag.spv", renderContext.device());
+    auto quadMaterial = std::make_unique<TextureMaterial>(renderContext.device(), textureVertexTextureShader, textureFragmentTextureShader);
+    TextureMaterial* quadMaterialPtr = quadMaterial.get();
+    quadMaterialPtr->createTextureSampler(renderContext, worleyNoiseTexture);
+
     m_materials.push_back(std::move(fogMaterial));
+    m_materials.push_back(std::move(quadMaterial));
     descriptorTable.addMaterial(fogMaterialPtr);
+    descriptorTable.addMaterial(quadMaterialPtr);
 
     /* -------------- Init SceneObjects -------------- */
     auto fogObject = std::make_unique<CubicFog>(*cubePtr, *fogMaterialPtr);
-    m_sceneObjects.push_back(std::move(fogObject));
+    auto quadObject = std::make_unique<QuadTexture>(*quadPtr, *quadMaterialPtr);
+    //m_sceneObjects.push_back(std::move(fogObject));
+    m_sceneObjects.push_back(std::move(quadObject));
 }
 
 void RenderScene::createGraphicPipelines(RenderContext& renderContext, VkRenderPass renderPass, DescriptorTable& descriptorTable)

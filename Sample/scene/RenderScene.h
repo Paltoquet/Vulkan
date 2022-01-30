@@ -4,7 +4,6 @@
 
 #include <core/DescriptorTable.h>
 #include <utils/Camera.h>
-#include <utils/Cube.h>
 #include <utils/TextureLoader.h>
 #include <utils/Material.h>
 #include <vulkan/vulkan.h>
