@@ -67,8 +67,8 @@ void DescriptorTable::createDescriptorPool()
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     poolInfo.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
     poolInfo.pPoolSizes = descriptorPoolSizes.data();
-    // 2 sets for each swap chain image
-    poolInfo.maxSets = static_cast<uint32_t>(2 * swapChainImageSize);
+    // (nb materials + globalDescriptor) * nbSwapChainImages
+    poolInfo.maxSets = static_cast<uint32_t>((m_materials.size() + 1) * swapChainImageSize);
 
     if (vkCreateDescriptorPool(m_renderContext.device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor pool!");
