@@ -11,6 +11,7 @@
 #include <noise/BrownianNoise.h>
 #include <noise/BrownianNoise3D.h>
 #include <noise/WorleyNoise3D.h>
+#include <noise/WorleyNoise2D.h>
 
 #include <glm/gtx/string_cast.hpp>
 
@@ -129,20 +130,20 @@ ImageView TextureLoader::loadWorleyNoiseTexture(const VkExtent2D& dimension, con
     imageInfo.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(dimension.width, dimension.height)))) + 1;
     imageInfo.aspectFlag = aspect;
 
-    WorleyNoise3D worleyGenerator = WorleyNoise3D(glm::ivec3(8, 8, 3));
+    WorleyNoise2D worleyGenerator = WorleyNoise2D(glm::vec2(8.0f, 8.0f));
     noiseDatas.resize(imageSize);
 
     float width  = static_cast<float>(dimension.width);
     float height = static_cast<float>(dimension.height);
-    glm::vec3 pixelPos;
+    glm::vec2 pixelPos;
     float noiseValue;
     unsigned char value;
     size_t index;
     for (size_t j = 0; j < dimension.height; j++) {
         for (size_t i = 0; i < dimension.width; i++) {
-            pixelPos = glm::vec3(i / width, j / height, 0.0f);
+            pixelPos = glm::vec2(i / width, j / height);
             index = (j * dimension.width + i) * 4;
-            noiseValue = worleyGenerator.evaluate(pixelPos, 6.0f) * 255;
+            noiseValue = worleyGenerator.evaluate(pixelPos, 6.8f) * 255.0f;
             value = static_cast<unsigned char>(noiseValue);
             noiseDatas[index] = value;
             noiseDatas[index + 1] = value;
@@ -231,17 +232,19 @@ ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImage
     /* --------------------------------- Load Buffers --------------------------------- */
 
     const uint32_t texMemSize = imageInfo.textureSize.width * imageInfo.textureSize.height * imageInfo.textureSize.depth;
-    BrownianNoise3D noiseGenerator = BrownianNoise3D(glm::ivec3(16, 16, 16), 3);
-    WorleyNoise3D worleyGenerator = WorleyNoise3D(glm::ivec3(8, 8, 3));
+    BrownianNoise3D noiseGenerator = BrownianNoise3D(glm::ivec3(32, 32, 32), 5);
+    WorleyNoise3D worleyGenerator = WorleyNoise3D(glm::ivec3(16, 16, 16));
 
     uint8_t *data = new uint8_t[texMemSize];
     memset(data, 0, texMemSize);
 
+    float textureWidth  = imageInfo.textureSize.width;
+    float textureHeight = imageInfo.textureSize.height;
+    float textureDepth  = imageInfo.textureSize.depth;
     glm::vec3 pixelPos;
     float noiseValue;
     float worleyValue;
-    glm::vec3 downscaleFactor = glm::vec3(imageInfo.textureSize.width, imageInfo.textureSize.height, imageInfo.textureSize.depth);
-    downscaleFactor /= 2.0f;
+    float detailValue;
     for (uint32_t z = 0; z < imageInfo.textureSize.depth; z++)
     {
         for (uint32_t y = 0; y < imageInfo.textureSize.height; y++)
@@ -249,10 +252,18 @@ ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImage
             for (uint32_t x = 0; x < imageInfo.textureSize.width; x++)
             {
                 pixelPos = glm::vec3(x, y, z); // / 64.0f;
-                noiseValue = noiseGenerator.evaluate(pixelPos) * 255.0f;
+                noiseValue = noiseGenerator.evaluate(pixelPos * 3.0f);
+                detailValue = noiseGenerator.evaluate(pixelPos * 18.0f);
+                pixelPos = glm::vec3(x / textureWidth, y / textureHeight, z / textureDepth); // / 64.0f;
                 data[x + y * imageInfo.textureSize.width + z * imageInfo.textureSize.width * imageInfo.textureSize.height] = noiseValue;
-                //worleyValue = worleyGenerator.evaluate(pixelPos, 12.0f) * 255.0f;
-                //data[x + y * imageInfo.textureSize.width + z * imageInfo.textureSize.width * imageInfo.textureSize.height] = worleyValue;
+                worleyValue = worleyGenerator.evaluate(pixelPos, 1.8f);
+                //worleyValue *= worleyValue;
+                worleyValue = 2.0f * noiseValue * worleyValue;
+                //worleyValue += worleyValue * noiseValue;
+                worleyValue = 2.0f * worleyValue * (1.1f - detailValue);
+                worleyValue = glm::min(worleyValue, 1.0f);
+                worleyValue *= 255.0f;
+                data[x + y * imageInfo.textureSize.width + z * imageInfo.textureSize.width * imageInfo.textureSize.height] = worleyValue;
             }
         }
     }
