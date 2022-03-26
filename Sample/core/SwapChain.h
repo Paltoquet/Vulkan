@@ -40,9 +40,11 @@ public:
 public:
     const std::vector<VkImage>& images() const;
     uint32_t size() const;
-    VkFormat currentImageFormat() const;
     const VkExtent2D& dimension() const;
     const VkSwapchainKHR& vkSwapChain() const;
+    const VkSurfaceFormatKHR& vkSurfaceFormat() const;
+    VkPresentModeKHR vkPresentMode() const;
+    VkFormat currentImageFormat() const;
 
 private:
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);

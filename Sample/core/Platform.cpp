@@ -44,8 +44,8 @@ void Platform::initialize()
     m_physicalDevice = pickPhysicalDevice();
     m_availableSwapChainInfos = querySwapChainSupport(m_physicalDevice);
 
-    m_engine = std::make_unique<Engine>(m_surface, m_physicalDevice);
-    m_engine->initialize(m_dimension, m_availableSwapChainInfos);
+    m_engine = std::make_unique<Engine>(m_instance, m_surface, m_physicalDevice);
+    m_engine->initialize(m_window.get(), m_availableSwapChainInfos);
 
     // Looking in the y positif, cross(up, direction) -> vec3(1.0, 0.0, 0.0)
     m_camera = std::make_unique<Camera>(glm::vec2(m_dimension.width, m_dimension.height), glm::vec3(0.0f, -3.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), 45.0f);

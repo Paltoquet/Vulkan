@@ -68,8 +68,8 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
     /* -------------- Init SceneObjects -------------- */
     auto fogObject = std::make_unique<CubicFog>(*cubePtr, *fogMaterialPtr);
     auto quadObject = std::make_unique<QuadTexture>(*quadPtr, *quadMaterialPtr);
-    //m_sceneObjects.push_back(std::move(fogObject));
-    m_sceneObjects.push_back(std::move(quadObject));
+    m_sceneObjects.push_back(std::move(fogObject));
+    //m_sceneObjects.push_back(std::move(quadObject));
 }
 
 void RenderScene::createGraphicPipelines(RenderContext& renderContext, VkRenderPass renderPass, DescriptorTable& descriptorTable)
@@ -98,7 +98,7 @@ void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, F
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     MatrixBuffer matrixBuffer;
-    matrixBuffer.buffer.model = camera.arcBallModel() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.8f));
+    matrixBuffer.buffer.model = camera.arcBallModel() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.68f));
     matrixBuffer.buffer.view = camera.viewMatrix();
     matrixBuffer.buffer.proj = camera.projectionMatrix();
     matrixBuffer.buffer.proj[1][1] *= -1;

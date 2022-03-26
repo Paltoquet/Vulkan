@@ -10,12 +10,12 @@
 
 /* --------------------------------- Constructors --------------------------------- */
 
-Engine::Engine(const VkSurfaceKHR& surface, const VkPhysicalDevice& device):
+Engine::Engine(const VkInstance& vkInstance, const VkSurfaceKHR& surface, const VkPhysicalDevice& device):
     m_renderContext(nullptr),
     m_renderScene(nullptr),
     m_descriptorTable(nullptr)
 {
-    m_renderContext = std::make_unique<RenderContext>(surface, device);
+    m_renderContext = std::make_unique<RenderContext>(vkInstance, surface, device);
 }
 
 
@@ -26,11 +26,12 @@ Engine::~Engine()
 
 /* --------------------------------- Public methods --------------------------------- */
 
-void Engine::initialize(const VkExtent2D& dimension, const SwapChainSupportInfos& swapChainSupport)
+void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSupport)
 {
     m_swapChainSupportInfo = swapChainSupport;
-    m_windowWidth = dimension.width;
-    m_windowHeight = dimension.height;
+    m_windowWidth = window->width();
+    m_windowHeight = window->height();
+    VkExtent2D dimension = { m_windowWidth, m_windowHeight };
 
     m_renderContext->createLogicalDevice();
     m_renderContext->pickGraphicQueue();
@@ -39,9 +40,12 @@ void Engine::initialize(const VkExtent2D& dimension, const SwapChainSupportInfos
     m_renderContext->createSwapChain(dimension, swapChainSupport);
 
     createMainRenderPass();
+
     m_renderContext->createFrameBuffers(m_mainRenderPass);
     m_renderContext->createCommandPool();
 
+    // Graphic Interface
+    createGraphicInterface(window);
     // Scene Managements
     m_renderScene = std::make_unique<RenderScene>();
     // Shader Uniforms
@@ -59,7 +63,6 @@ void Engine::initialize(const VkExtent2D& dimension, const SwapChainSupportInfos
     // Pipelines
     m_renderScene->createGraphicPipelines(*m_renderContext, m_mainRenderPass, *m_descriptorTable);
 
-    // Swap chain Images
     createCommandBuffers();
     createSyncObjects();
 }
@@ -82,9 +85,17 @@ void Engine::drawFrame(Camera& camera)
     vkWaitForFences(m_renderContext->device(), 1, &fence, VK_TRUE, UINT64_MAX);
     vkResetFences(m_renderContext->device(), 1, &fence);
 
+    // --------------------------------- Update UI ---------------------------------
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+    ImGui::ShowDemoWindow();
+    ImGui::Render();
     // --------------------------------- Submit command ---------------------------------
 
     updateUniformBuffer(camera, imageIndex);
+    updateCommandBuffer(imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -159,6 +170,7 @@ void Engine::cleanUp()
 {
     cleanUpSwapchain();
 
+    m_graphicInterface->cleanUp(*m_renderContext);
     m_renderScene->cleanUp(*m_renderContext);
     m_descriptorTable->cleanUp();
 
@@ -187,10 +199,10 @@ RenderContext* Engine::renderContext()
 
 /* --------------------------------- Private methods --------------------------------- */
 
-void Engine::updateUniformBuffer(Camera& camera, uint32_t currentImage)
+void Engine::updateUniformBuffer(Camera& camera, uint32_t imageIndex)
 {
-    auto& frameDescriptors = m_descriptorTable->getFrameDescriptor(currentImage);
-    auto& globalDescritpor = m_descriptorTable->getGlobalDescriptor(currentImage);
+    auto& frameDescriptors = m_descriptorTable->getFrameDescriptor(imageIndex);
+    auto& globalDescritpor = m_descriptorTable->getGlobalDescriptor(imageIndex);
     m_renderScene->updateUniforms(*m_renderContext, camera, frameDescriptors, globalDescritpor);
 }
 
@@ -272,6 +284,12 @@ void Engine::createMainRenderPass()
     }
 }
 
+void Engine::createGraphicInterface(Window* window)
+{
+    m_graphicInterface = std::make_unique<FogMenu>();
+    m_graphicInterface->initialize(window, *m_renderContext, m_mainRenderPass);
+}
+
 void Engine::createCommandBuffers()
 {
     uint32_t swapChainImageSize = m_renderContext->swapChain().size();
@@ -296,31 +314,62 @@ void Engine::createCommandBuffers()
             throw std::runtime_error("failed to begin recording command buffer!");
         }
 
-        std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-        clearValues[1].depthStencil = { 1.0f, 0 };
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = m_mainRenderPass;
-        renderPassInfo.framebuffer = m_renderContext->frameBuffers()[i];
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = m_renderContext->dimension();
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
-
-        vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-        auto& frameDescriptor = m_descriptorTable->getFrameDescriptor(i);
-        auto& globalDescriptor = m_descriptorTable->getGlobalDescriptor(i);
-
-        m_renderScene->fillCommandBuffer(*m_renderContext, m_commandBuffers[i], frameDescriptor, globalDescriptor.descriptorSet);
-
-        vkCmdEndRenderPass(m_commandBuffers[i]);
+        // Empty buffers
 
         if (vkEndCommandBuffer(m_commandBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to record command buffer!");
         }
     }
+}
+
+void Engine::updateCommandBuffer(uint32_t imageIndex)
+{
+    vkResetCommandBuffer(m_commandBuffers[imageIndex], 0);
+    //vkResetCommandBuffer(m_commandBuffers[imageIndex], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0; // Optional
+    beginInfo.pInheritanceInfo = nullptr; // Optional
+
+    if (vkBeginCommandBuffer(m_commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
+        throw std::runtime_error("failed to begin recording command buffer!");
+    }
+
+    fillCommandBuffers(imageIndex);
+
+    if (vkEndCommandBuffer(m_commandBuffers[imageIndex]) != VK_SUCCESS) {
+        throw std::runtime_error("failed to record command buffer!");
+    }
+}
+
+void Engine::fillCommandBuffers(uint32_t imageIndex)
+{
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = m_mainRenderPass;
+    renderPassInfo.framebuffer = m_renderContext->frameBuffers()[imageIndex];
+    renderPassInfo.renderArea.offset = { 0, 0 };
+    renderPassInfo.renderArea.extent = m_renderContext->dimension();
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+    vkCmdBeginRenderPass(m_commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    auto& frameDescriptor = m_descriptorTable->getFrameDescriptor(imageIndex);
+    auto& globalDescriptor = m_descriptorTable->getGlobalDescriptor(imageIndex);
+
+    // Fill Scene command buffer
+    m_renderScene->fillCommandBuffer(*m_renderContext, m_commandBuffers[imageIndex], frameDescriptor, globalDescriptor.descriptorSet);
+
+    // Record dear imgui primitives into command buffer
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    ImGui_ImplVulkan_RenderDrawData(draw_data, m_commandBuffers[imageIndex]);
+
+    vkCmdEndRenderPass(m_commandBuffers[imageIndex]);
 }
 
 void Engine::createSyncObjects()

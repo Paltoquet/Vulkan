@@ -16,9 +16,13 @@ public:
 public:
     VkSurfaceKHR create_surface(VkInstance& instance);
     GLFWwindow* handle();
+    int width() const;
+    int height() const;
 
 private:
     GLFWwindow *m_handle = nullptr;
+    int m_width;
+    int m_height;
 
 };
 

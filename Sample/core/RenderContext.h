@@ -16,7 +16,7 @@ struct FrameBufferAttachment {
 class RenderContext
 {
 public:
-    RenderContext(const VkSurfaceKHR& surface, const VkPhysicalDevice& device);
+    RenderContext(const VkInstance& vkInstance, const VkSurfaceKHR& surface, const VkPhysicalDevice& device);
     ~RenderContext();
 
 public:
@@ -43,6 +43,7 @@ public:
     VkSampleCountFlagBits multiSamplingSamples() const;
     const RenderFrame& getRenderFrame(uint32_t index) const;
 
+    const VkInstance& vkInstance() const;
     const VkSurfaceKHR& surface() const;
     const VkPhysicalDevice& physicalDevice() const;
     const VkDevice& device() const;
@@ -62,6 +63,7 @@ public:
     static const std::vector<const char*> validationLayers;
 
 private:
+    const VkInstance& m_vkInstance;
     const VkSurfaceKHR& m_surface;
     const VkPhysicalDevice& m_physicalDevice;
     VkDevice m_device;

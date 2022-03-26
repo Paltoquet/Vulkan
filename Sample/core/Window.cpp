@@ -42,7 +42,9 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 /* --------------------------------- Constructors --------------------------------- */
 
-Window::Window(Platform* Platform, int width, int height)
+Window::Window(Platform* Platform, int width, int height):
+    m_width(width),
+    m_height(height)
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -85,4 +87,14 @@ VkSurfaceKHR Window::create_surface(VkInstance &instance)
 GLFWwindow* Window::handle()
 {
     return m_handle;
+}
+
+int Window::width() const
+{
+    return m_width;
+}
+
+int Window::height() const
+{
+    return m_height;
 }

@@ -5,7 +5,7 @@
 #include <set>
 #include <array>
 
-#ifdef NDEBUG
+#ifdef AHAH
 const bool RenderContext::enableValidationLayers = false;
 #else
 const bool RenderContext::enableValidationLayers = true;
@@ -21,7 +21,8 @@ const std::vector<const char*> RenderContext::validationLayers = {
 
 /* --------------------------------- Constructors --------------------------------- */
 
-RenderContext::RenderContext(const VkSurfaceKHR& surface, const VkPhysicalDevice& device):
+RenderContext::RenderContext(const VkInstance& vkInstance, const VkSurfaceKHR& surface, const VkPhysicalDevice& device):
+    m_vkInstance(vkInstance),
     m_surface(surface),
     m_physicalDevice(device),
     m_swapChain(nullptr),
@@ -165,7 +166,8 @@ void RenderContext::createCommandPool()
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.queueFamilyIndex = m_graphicQueueIndex;
-    poolInfo.flags = 0; // Optional
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    //poolInfo.flags = 0; // Optional
 
     if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create command pool!");
@@ -345,6 +347,11 @@ VkSampleCountFlagBits RenderContext::multiSamplingSamples() const
 const RenderFrame& RenderContext::getRenderFrame(uint32_t index) const
 {
     return *m_frames.at(index);
+}
+
+const VkInstance& RenderContext::vkInstance() const
+{
+    return m_vkInstance;
 }
 
 const VkSurfaceKHR& RenderContext::surface() const

@@ -86,11 +86,6 @@ uint32_t SwapChain::size() const
     return static_cast<uint32_t>(m_swapChainImages.size());
 }
 
-VkFormat SwapChain::currentImageFormat() const
-{
-    return m_properties.surfaceFormat.format;
-}
-
 const VkExtent2D& SwapChain::dimension() const
 {
     return m_dimension;
@@ -99,6 +94,21 @@ const VkExtent2D& SwapChain::dimension() const
 const VkSwapchainKHR& SwapChain::vkSwapChain() const
 {
     return m_swapChain;
+}
+
+const VkSurfaceFormatKHR& SwapChain::vkSurfaceFormat() const
+{
+    return m_properties.surfaceFormat;
+}
+
+VkPresentModeKHR SwapChain::vkPresentMode() const
+{
+    return m_properties.presentMode;
+}
+
+VkFormat SwapChain::currentImageFormat() const
+{
+    return m_properties.surfaceFormat.format;
 }
 
 /* --------------------------------- Private Methods --------------------------------- */

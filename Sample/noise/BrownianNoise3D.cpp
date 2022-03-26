@@ -11,8 +11,8 @@ BrownianNoise3D::BrownianNoise3D(const glm::ivec3& kernelSize, size_t nbLayers):
     m_kernelSize(kernelSize),
     m_nbLayers(nbLayers),
     m_randomSeed(42),
-    m_baseFrequency(0.05),
-    m_rateOffChanged(2.0)
+    m_baseFrequency(0.05f),
+    m_rateOffChanged(2.0f)
 {
     computeKernel();
 }
@@ -35,7 +35,7 @@ float BrownianNoise3D::evaluate(const glm::vec3& pos) const
         float frequency = m_baseFrequency * pow(m_rateOffChanged, i);
         float amplitude = pow(m_rateOffChanged, i);
         value += computeNoise(pos * frequency) / amplitude;
-        noiseMax += 1.0 / amplitude;
+        noiseMax += 1.0f / amplitude;
     }
     value = value / noiseMax;
     return value;
