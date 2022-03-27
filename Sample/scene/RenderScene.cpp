@@ -90,15 +90,16 @@ void RenderScene::destroyGraphicPipelines(RenderContext& renderContext)
     }
 }
 
-void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, FrameDescriptor& currentDescriptor, DescriptorEntry& golbalDescriptor)
+void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, ViewParams& viewParams, FrameDescriptor& currentDescriptor, DescriptorEntry& golbalDescriptor)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    float fogScale = viewParams.fogScale();
 
     MatrixBuffer matrixBuffer;
-    matrixBuffer.buffer.model = camera.arcBallModel() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.68f));
+    matrixBuffer.buffer.model = camera.arcBallModel() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, fogScale));
     matrixBuffer.buffer.view = camera.viewMatrix();
     matrixBuffer.buffer.proj = camera.projectionMatrix();
     matrixBuffer.buffer.proj[1][1] *= -1;

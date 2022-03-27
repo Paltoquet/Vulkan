@@ -2,6 +2,7 @@
 
 #include "Window.h"
 #include "Engine.h"
+#include <ui/ViewParams.h>
 #include <utils/CameraController.h>
 #include <utils/Camera.h>
 
@@ -58,6 +59,7 @@ private:
     std::unique_ptr<Engine> m_engine;
     std::unique_ptr<Camera> m_camera;
     std::unique_ptr<CameraController> m_cameraController;
+    std::unique_ptr<ViewParams> m_viewParams;
     VkInstance m_instance;
     VkDebugUtilsMessengerEXT m_debugMessenger;
     VkPhysicalDevice m_physicalDevice;

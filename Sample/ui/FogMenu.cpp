@@ -5,7 +5,8 @@
 
 /* --------------------------------- Constructors --------------------------------- */
 
-FogMenu::FogMenu()
+FogMenu::FogMenu(ViewParams& viewParams):
+    m_viewParams(viewParams)
 {
 
 }
@@ -70,9 +71,44 @@ void FogMenu::initialize(Window* window, RenderContext& renderContext, VkRenderP
     VkCommandBuffer cmd = renderContext.beginSingleTimeCommands();
     ImGui_ImplVulkan_CreateFontsTexture(cmd);
     renderContext.endSingleTimeCommands(cmd);
-
+    
     //clear font textures from cpu data
     ImGui_ImplVulkan_DestroyFontUploadObjects();
+}
+
+void FogMenu::draw(RenderContext& renderContext)
+{
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    //ImGui::ShowDemoWindow();
+
+    auto windowSize = ImVec2(renderContext.width() * 0.25f, renderContext.height() * 0.2f);
+    auto windowPosition = ImVec2(renderContext.width() - windowSize.x, 0);
+    ImGui::SetNextWindowSize(windowSize, ImGuiCond_Once);
+    ImGui::SetNextWindowPos(windowPosition, ImGuiCond_Once);
+    ImGui::Begin("Volumetric Fog");
+    ImGui::Text("Upload a 3D texture on the GPU");
+    //ImGui::Checkbox("Demo Window", &show_demo_window);
+    ImGui::SliderFloat("dimension", &m_viewParams.fogScale(), 1.0f, 8.0f); // Edit 1 float using a slider from 0.0f to 1.0f
+    //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+    //if (ImGui::Button("Button"))  // Buttons return true when clicked (most widgets return true when edited/activated)
+    //    counter++;
+
+    //ImGui::SameLine();
+    ImGui::NewLine();
+    ImGui::Text("Performance: %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+
+    ImGui::Render();
+}
+
+void FogMenu::fillCommandBuffer(VkCommandBuffer& cmdBuffer)
+{
+    // Record dear imgui primitives into command buffer
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    ImGui_ImplVulkan_RenderDrawData(draw_data, cmdBuffer);
 }
 
 void FogMenu::cleanUp(RenderContext& renderContext)

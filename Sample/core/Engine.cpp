@@ -26,7 +26,7 @@ Engine::~Engine()
 
 /* --------------------------------- Public methods --------------------------------- */
 
-void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSupport)
+void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSupport, ViewParams& viewParams)
 {
     m_swapChainSupportInfo = swapChainSupport;
     m_windowWidth = window->width();
@@ -45,7 +45,7 @@ void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSu
     m_renderContext->createCommandPool();
 
     // Graphic Interface
-    createGraphicInterface(window);
+    createGraphicInterface(window, viewParams);
     // Scene Managements
     m_renderScene = std::make_unique<RenderScene>();
     // Shader Uniforms
@@ -67,7 +67,7 @@ void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSu
     createSyncObjects();
 }
 
-void Engine::drawFrame(Camera& camera)
+void Engine::drawFrame(Camera& camera, ViewParams& viewParams)
 {
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(m_renderContext->device(), m_renderContext->swapChain().vkSwapChain(), UINT64_MAX, m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
@@ -86,15 +86,12 @@ void Engine::drawFrame(Camera& camera)
     vkResetFences(m_renderContext->device(), 1, &fence);
 
     // --------------------------------- Update UI ---------------------------------
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    ImGui::ShowDemoWindow();
-    ImGui::Render();
+    
+    m_graphicInterface->draw(*m_renderContext);
+
     // --------------------------------- Submit command ---------------------------------
 
-    updateUniformBuffer(camera, imageIndex);
+    updateUniformBuffer(camera, viewParams, imageIndex);
     updateCommandBuffer(imageIndex);
 
     VkSubmitInfo submitInfo{};
@@ -199,11 +196,11 @@ RenderContext* Engine::renderContext()
 
 /* --------------------------------- Private methods --------------------------------- */
 
-void Engine::updateUniformBuffer(Camera& camera, uint32_t imageIndex)
+void Engine::updateUniformBuffer(Camera& camera, ViewParams& viewParams, uint32_t imageIndex)
 {
     auto& frameDescriptors = m_descriptorTable->getFrameDescriptor(imageIndex);
     auto& globalDescritpor = m_descriptorTable->getGlobalDescriptor(imageIndex);
-    m_renderScene->updateUniforms(*m_renderContext, camera, frameDescriptors, globalDescritpor);
+    m_renderScene->updateUniforms(*m_renderContext, camera, viewParams, frameDescriptors, globalDescritpor);
 }
 
 void Engine::createMainRenderPass()
@@ -284,9 +281,9 @@ void Engine::createMainRenderPass()
     }
 }
 
-void Engine::createGraphicInterface(Window* window)
+void Engine::createGraphicInterface(Window* window, ViewParams& viewParams)
 {
-    m_graphicInterface = std::make_unique<FogMenu>();
+    m_graphicInterface = std::make_unique<FogMenu>(viewParams);
     m_graphicInterface->initialize(window, *m_renderContext, m_mainRenderPass);
 }
 
@@ -364,10 +361,7 @@ void Engine::fillCommandBuffers(uint32_t imageIndex)
 
     // Fill Scene command buffer
     m_renderScene->fillCommandBuffer(*m_renderContext, m_commandBuffers[imageIndex], frameDescriptor, globalDescriptor.descriptorSet);
-
-    // Record dear imgui primitives into command buffer
-    ImDrawData* draw_data = ImGui::GetDrawData();
-    ImGui_ImplVulkan_RenderDrawData(draw_data, m_commandBuffers[imageIndex]);
+    m_graphicInterface->fillCommandBuffer(m_commandBuffers[imageIndex]);
 
     vkCmdEndRenderPass(m_commandBuffers[imageIndex]);
 }

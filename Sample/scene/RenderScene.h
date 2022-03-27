@@ -3,6 +3,7 @@
 #include "SceneObject.h"
 
 #include <core/DescriptorTable.h>
+#include <ui/ViewParams.h>
 #include <utils/Camera.h>
 #include <utils/TextureLoader.h>
 #include <utils/Material.h>
@@ -21,7 +22,7 @@ public:
     void initialize(RenderContext& renderContext, DescriptorTable& descriptorTable);
     void createGraphicPipelines(RenderContext& renderContext, VkRenderPass renderPass, DescriptorTable& descriptorTable);
     void destroyGraphicPipelines(RenderContext& renderContext);
-    void updateUniforms(RenderContext& renderContext, Camera& camera, FrameDescriptor& currentDescriptor, DescriptorEntry& golbalDescriptor);
+    void updateUniforms(RenderContext& renderContext, Camera& camera, ViewParams& viewParams, FrameDescriptor& currentDescriptor, DescriptorEntry& golbalDescriptor);
     void fillCommandBuffer(RenderContext& renderContext, VkCommandBuffer cmdBuffer, FrameDescriptor frameDescriptor, VkDescriptorSet globalDescriptor);
     void cleanUp(RenderContext& renderContext);
 

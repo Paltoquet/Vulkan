@@ -22,7 +22,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 
 Platform::Platform():
     m_applicationName("Volumetric fog"),
-    m_dimension({ 800, 400 })
+    m_window(nullptr),
+    m_engine(nullptr),
+    m_camera(nullptr),
+    m_cameraController(nullptr),
+    m_viewParams(nullptr),
+    m_dimension({ 1200, 600 })
 {
 
 }
@@ -44,19 +49,21 @@ void Platform::initialize()
     m_physicalDevice = pickPhysicalDevice();
     m_availableSwapChainInfos = querySwapChainSupport(m_physicalDevice);
 
-    m_engine = std::make_unique<Engine>(m_instance, m_surface, m_physicalDevice);
-    m_engine->initialize(m_window.get(), m_availableSwapChainInfos);
-
     // Looking in the y positif, cross(up, direction) -> vec3(1.0, 0.0, 0.0)
     m_camera = std::make_unique<Camera>(glm::vec2(m_dimension.width, m_dimension.height), glm::vec3(0.0f, -3.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), 45.0f);
     m_cameraController = std::make_unique<CameraController>(m_camera.get(), m_dimension.width, m_dimension.height);
+    m_viewParams = std::make_unique<ViewParams>();
+
+    // Initialiaze RenderPass & FrameBuffers
+    m_engine = std::make_unique<Engine>(m_instance, m_surface, m_physicalDevice);
+    m_engine->initialize(m_window.get(), m_availableSwapChainInfos, *m_viewParams);
 }
 
 void Platform::mainLoop()
 {
     while (!glfwWindowShouldClose(m_window->handle())) {
         glfwPollEvents();
-        m_engine->drawFrame(*m_camera);
+        m_engine->drawFrame(*m_camera, * m_viewParams);
     }
 
     vkDeviceWaitIdle(m_engine->renderContext()->device());

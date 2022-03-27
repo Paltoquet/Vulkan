@@ -5,6 +5,7 @@
 #include "Window.h"
 #include <scene/RenderScene.h>
 #include <utils/Camera.h>
+#include <ui/ViewParams.h>
 #include <ui/FogMenu.h>
 
 #include <memory>
@@ -18,12 +19,12 @@ public:
     ~Engine();
 
 public:
-    void initialize(Window* window, const SwapChainSupportInfos& swapChainSupport);
+    void initialize(Window* window, const SwapChainSupportInfos& swapChainSupport, ViewParams& viewParams);
     void createCommandBuffers();
-    void updateUniformBuffer(Camera& camera, uint32_t imageIndex);
+    void updateUniformBuffer(Camera& camera, ViewParams& viewParams, uint32_t imageIndex);
     void updateCommandBuffer(uint32_t imageIndex);
     void fillCommandBuffers(uint32_t imageIndex);
-    void drawFrame(Camera& camera);
+    void drawFrame(Camera& camera, ViewParams& viewParams);
     void resize(int width, int height, const SwapChainSupportInfos& swapChainSupport);
     void cleanUp();
 
@@ -32,7 +33,7 @@ public:
 
 private:
     void createMainRenderPass();
-    void createGraphicInterface(Window* window);
+    void createGraphicInterface(Window* window, ViewParams& viewParams);
     void createSyncObjects();
     void recreateSwapChain();
     void cleanUpSwapchain();
