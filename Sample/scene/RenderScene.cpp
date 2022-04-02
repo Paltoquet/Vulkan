@@ -1,6 +1,5 @@
 #include "RenderScene.h"
 
-#include "CubicFog.h"
 #include "QuadTexture.h"
 
 #include <iostream>
@@ -10,7 +9,8 @@
 #include <utils/Quad.h>
 
 RenderScene::RenderScene():
-    m_textureLoader(nullptr)
+    m_textureLoader(nullptr),
+    m_cubicFog(nullptr)
 {
     
 }
@@ -21,7 +21,7 @@ RenderScene::~RenderScene()
 }
 
 /* -------------------------- Public methods -------------------------- */
-void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& descriptorTable)
+void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& descriptorTable, ViewParams& viewParams)
 {
     m_textureLoader = std::make_unique<TextureLoader>(&renderContext);
     /* -------------- Init Meshes -------------- */
@@ -40,25 +40,22 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
     VkExtent2D dimension = VkExtent2D({ 512, 512 });
     VkExtent3D dimension3D = VkExtent3D({ 48, 48, 64 });
 
-    ImageView noiseTexture3D = m_textureLoader->load3DNoiseTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT);
-    ImageView worleyNoiseTexture = m_textureLoader->loadWorleyNoiseTexture(dimension, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-    m_textures.push_back(noiseTexture3D);
-    m_textures.push_back(worleyNoiseTexture);
-    m_textures.push_back(m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
-
+    m_cloudTexture = m_textureLoader->load3DCloudTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT, viewParams.noiseSize());
+    m_noiseTexture = m_textureLoader->loadWorleyNoiseTexture(dimension, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    //m_textures.push_back(m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
 
     /* -------------- Init Materials -------------- */
     VkShaderModule fogVertexTextureShader = ShaderLoader::loadShader("shaders/cloud_vert.spv", renderContext.device());
     VkShaderModule fogFragmentTextureShader = ShaderLoader::loadShader("shaders/cloud_frag.spv", renderContext.device());
     auto fogMaterial = std::make_unique<FogMaterial>(renderContext.device(), fogVertexTextureShader, fogFragmentTextureShader);
     FogMaterial* fogMaterialPtr = fogMaterial.get();
-    fogMaterialPtr->createTextureSampler(renderContext, noiseTexture3D);
+    fogMaterialPtr->createTextureSampler(renderContext, m_cloudTexture);
 
     VkShaderModule textureVertexTextureShader = ShaderLoader::loadShader("shaders/texture_vert.spv", renderContext.device());
     VkShaderModule textureFragmentTextureShader = ShaderLoader::loadShader("shaders/texture_frag.spv", renderContext.device());
     auto quadMaterial = std::make_unique<TextureMaterial>(renderContext.device(), textureVertexTextureShader, textureFragmentTextureShader);
     TextureMaterial* quadMaterialPtr = quadMaterial.get();
-    quadMaterialPtr->createTextureSampler(renderContext, worleyNoiseTexture);
+    quadMaterialPtr->createTextureSampler(renderContext, m_noiseTexture);
 
     m_materials.push_back(std::move(fogMaterial));
     m_materials.push_back(std::move(quadMaterial));
@@ -68,6 +65,7 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
     /* -------------- Init SceneObjects -------------- */
     auto fogObject = std::make_unique<CubicFog>(*cubePtr, *fogMaterialPtr);
     auto quadObject = std::make_unique<QuadTexture>(*quadPtr, *quadMaterialPtr);
+    m_cubicFog = fogObject.get();
     m_sceneObjects.push_back(std::move(fogObject));
     //m_sceneObjects.push_back(std::move(quadObject));
 }
@@ -90,13 +88,15 @@ void RenderScene::destroyGraphicPipelines(RenderContext& renderContext)
     }
 }
 
-void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, ViewParams& viewParams, FrameDescriptor& currentDescriptor, DescriptorEntry& golbalDescriptor)
+void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, ViewParams& viewParams, DescriptorTable& descriptorTable, FrameDescriptor& currentDescriptor, DescriptorEntry& golbalDescriptor)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
     float fogScale = viewParams.fogScale();
+
+    // ------------------- Matrices
 
     MatrixBuffer matrixBuffer;
     matrixBuffer.buffer.model = camera.arcBallModel() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, fogScale));
@@ -109,6 +109,23 @@ void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, V
     vkMapMemory(renderContext.device(), golbalDescriptor.memory, 0, sizeof(MatrixBuffer::BufferData), 0, &matrixData);
     memcpy(matrixData, &matrixBuffer.buffer, sizeof(MatrixBuffer::BufferData));
     vkUnmapMemory(renderContext.device(), golbalDescriptor.memory);
+
+    // ------------------- Textures
+
+    if (viewParams.noiseSizeChanged()) {
+        VkExtent3D dimension3D = VkExtent3D({ 48, 48, 64 });
+        auto updatedCloudTexture = m_textureLoader->load3DCloudTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT, viewParams.noiseSize());
+
+        FogMaterial* fogMaterial = m_cubicFog->getFogMaterial();
+        std::vector<DescriptorEntry> descriptors = descriptorTable.getMaterialDescriptors(fogMaterial->materialId());
+        for (auto& descriptor : descriptors) {
+            fogMaterial->updateFogTexture(renderContext, updatedCloudTexture, descriptor.descriptorSet, descriptor.buffer);
+        }
+        m_cloudTexture.cleanUp(renderContext.device());
+        m_cloudTexture = updatedCloudTexture;
+    }
+
+    // ------------------ SceneObjects
 
     for (auto& sceneObject : m_sceneObjects) {
         auto* material = sceneObject->getMaterial();
@@ -154,9 +171,12 @@ void RenderScene::fillCommandBuffer(RenderContext& renderContext, VkCommandBuffe
 
 void RenderScene::cleanUp(RenderContext& renderContext)
 {
-    for (auto& texture : m_textures) {
-        texture.cleanUp(renderContext.device());
-    }
+    //for (auto& texture : m_textures) {
+    //    texture.cleanUp(renderContext.device());
+    //}
+
+    m_cloudTexture.cleanUp(renderContext.device());
+    m_noiseTexture.cleanUp(renderContext.device());
 
     for (auto& mesh : m_meshes) {
         mesh->cleanUp(renderContext);

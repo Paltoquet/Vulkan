@@ -12,6 +12,8 @@
 #include <vector>
 #include <array>
 
+#include "CubicFog.h"
+
 class RenderScene
 {
 public:
@@ -19,10 +21,10 @@ public:
     ~RenderScene();
 
 public:
-    void initialize(RenderContext& renderContext, DescriptorTable& descriptorTable);
+    void initialize(RenderContext& renderContext, DescriptorTable& descriptorTable, ViewParams& viewParams);
     void createGraphicPipelines(RenderContext& renderContext, VkRenderPass renderPass, DescriptorTable& descriptorTable);
     void destroyGraphicPipelines(RenderContext& renderContext);
-    void updateUniforms(RenderContext& renderContext, Camera& camera, ViewParams& viewParams, FrameDescriptor& currentDescriptor, DescriptorEntry& golbalDescriptor);
+    void updateUniforms(RenderContext& renderContext, Camera& camera, ViewParams& viewParams, DescriptorTable& descriptorTable, FrameDescriptor& currentDescriptor, DescriptorEntry& golbalDescriptor);
     void fillCommandBuffer(RenderContext& renderContext, VkCommandBuffer cmdBuffer, FrameDescriptor frameDescriptor, VkDescriptorSet globalDescriptor);
     void cleanUp(RenderContext& renderContext);
 
@@ -31,5 +33,8 @@ private:
     std::vector<std::unique_ptr<Mesh>> m_meshes;
     std::vector<std::unique_ptr<Material>> m_materials;
     std::vector<std::unique_ptr<SceneObject>> m_sceneObjects;
-    std::vector<ImageView> m_textures;
+
+    ImageView m_cloudTexture;
+    ImageView m_noiseTexture;
+    CubicFog* m_cubicFog;
 };

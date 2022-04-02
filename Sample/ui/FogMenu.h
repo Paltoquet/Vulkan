@@ -29,4 +29,7 @@ public:
 private:
     VkDescriptorPool m_imGUIPool;
     ViewParams& m_viewParams;
+
+    float m_fogScale;
+    float m_noiseSize;
 };

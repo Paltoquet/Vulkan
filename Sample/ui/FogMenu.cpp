@@ -6,7 +6,9 @@
 /* --------------------------------- Constructors --------------------------------- */
 
 FogMenu::FogMenu(ViewParams& viewParams):
-    m_viewParams(viewParams)
+    m_viewParams(viewParams),
+    m_fogScale(viewParams.fogScale()),
+    m_noiseSize(viewParams.noiseSize())
 {
 
 }
@@ -90,18 +92,21 @@ void FogMenu::draw(RenderContext& renderContext)
     ImGui::Begin("Volumetric Fog");
     ImGui::Text("Upload a 3D texture on the GPU");
     //ImGui::Checkbox("Demo Window", &show_demo_window);
-    ImGui::SliderFloat("dimension", &m_viewParams.fogScale(), 1.0f, 8.0f); // Edit 1 float using a slider from 0.0f to 1.0f
-    //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+    ImGui::SliderFloat("Fog Dimension", &m_fogScale, 1.0f, 8.0f); // Edit 1 float using a slider from 0.0f to 1.0f
+    ImGui::SliderFloat("Noise Dimension", &m_noiseSize, 0.5f, 32.0f); // Edit 1 float using a slider from 0.0f to 1.0f
 
+    //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
     //if (ImGui::Button("Button"))  // Buttons return true when clicked (most widgets return true when edited/activated)
     //    counter++;
-
     //ImGui::SameLine();
+
     ImGui::NewLine();
     ImGui::Text("Performance: %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
 
     ImGui::Render();
+
+    m_viewParams.update(m_fogScale, m_noiseSize);
 }
 
 void FogMenu::fillCommandBuffer(VkCommandBuffer& cmdBuffer)

@@ -52,7 +52,7 @@ void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSu
     m_descriptorTable = std::make_unique<DescriptorTable>(*m_renderContext);
 
     // Mesh, Material, Textures & Shaders
-    m_renderScene->initialize(*m_renderContext, *m_descriptorTable);
+    m_renderScene->initialize(*m_renderContext, *m_descriptorTable, viewParams);
 
     // Descriptor 
     m_descriptorTable->createDescriptorPool();
@@ -200,7 +200,7 @@ void Engine::updateUniformBuffer(Camera& camera, ViewParams& viewParams, uint32_
 {
     auto& frameDescriptors = m_descriptorTable->getFrameDescriptor(imageIndex);
     auto& globalDescritpor = m_descriptorTable->getGlobalDescriptor(imageIndex);
-    m_renderScene->updateUniforms(*m_renderContext, camera, viewParams, frameDescriptors, globalDescritpor);
+    m_renderScene->updateUniforms(*m_renderContext, camera, viewParams, *m_descriptorTable, frameDescriptors, globalDescritpor);
 }
 
 void Engine::createMainRenderPass()

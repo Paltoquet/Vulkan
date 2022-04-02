@@ -49,6 +49,8 @@ public:
     DescriptorEntry& getGlobalDescriptor(size_t frameIndex);
     VkDescriptorSetLayout globalDescriptorLayout() const;
 
+    std::vector<DescriptorEntry> getMaterialDescriptors(MaterialID materialId);
+
 private:
     RenderContext& m_renderContext;
     VkDescriptorPool m_descriptorPool;

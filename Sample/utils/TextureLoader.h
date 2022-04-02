@@ -13,7 +13,7 @@ public:
     ImageView loadTexture(const std::string& path, const VkFormat& format, VkImageAspectFlags aspect);
     ImageView loadNoiseTexture(const VkExtent2D& dimension, const VkFormat& format, VkImageAspectFlags aspect);
     ImageView loadWorleyNoiseTexture(const VkExtent2D& dimension, const VkFormat& format, VkImageAspectFlags aspect);
-    ImageView load3DNoiseTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect);
+    ImageView load3DCloudTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect, float noiseDim);
 
 private:
     void generateMipmaps(VkCommandBuffer commandBuffer, Image& image, int32_t texWidth, int32_t texHeight);

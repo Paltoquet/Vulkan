@@ -210,3 +210,13 @@ VkDescriptorSetLayout DescriptorTable::globalDescriptorLayout() const
 {
     return m_globalUniformDescriptorLayout;
 }
+
+std::vector<DescriptorEntry> DescriptorTable::getMaterialDescriptors(MaterialID materialId)
+{
+    std::vector<DescriptorEntry> descriptors;
+    for (auto& frameDescriptor : m_frameDescriptors) {
+        auto& descriptorRef = frameDescriptor.getDescriptorEntry(materialId);
+        descriptors.push_back(descriptorRef);
+    }
+    return descriptors;
+}

@@ -178,7 +178,7 @@ ImageView TextureLoader::loadWorleyNoiseTexture(const VkExtent2D& dimension, con
     return ImageView(m_renderContext->device(), imageInfo, VK_IMAGE_VIEW_TYPE_2D);
 }
 
-ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect)
+ImageView TextureLoader::load3DCloudTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect, float noiseDim)
 {
     Image imageInfo;
     imageInfo.Vkformat = VK_FORMAT_R8_UNORM;
@@ -245,6 +245,11 @@ ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImage
     float noiseValue;
     float worleyValue;
     float detailValue;
+    
+    float noiseScale = noiseDim;
+    float worleyScale = noiseDim / 2.0f;
+    float detailScale = noiseDim * 6.0f;
+
     for (uint32_t z = 0; z < imageInfo.textureSize.depth; z++)
     {
         for (uint32_t y = 0; y < imageInfo.textureSize.height; y++)
@@ -252,11 +257,11 @@ ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImage
             for (uint32_t x = 0; x < imageInfo.textureSize.width; x++)
             {
                 pixelPos = glm::vec3(x, y, z); // / 64.0f;
-                noiseValue = noiseGenerator.evaluate(pixelPos * 3.0f);
-                detailValue = noiseGenerator.evaluate(pixelPos * 18.0f);
+                noiseValue = noiseGenerator.evaluate(pixelPos * noiseScale);
+                detailValue = noiseGenerator.evaluate(pixelPos * detailScale);
                 pixelPos = glm::vec3(x / textureWidth, y / textureHeight, z / textureDepth); // / 64.0f;
-                data[x + y * imageInfo.textureSize.width + z * imageInfo.textureSize.width * imageInfo.textureSize.height] = noiseValue;
-                worleyValue = worleyGenerator.evaluate(pixelPos, 1.8f);
+                //data[x + y * imageInfo.textureSize.width + z * imageInfo.textureSize.width * imageInfo.textureSize.height] = noiseValue;
+                worleyValue = worleyGenerator.evaluate(pixelPos, worleyScale);
                 //worleyValue *= worleyValue;
                 worleyValue = 2.0f * noiseValue * worleyValue;
                 //worleyValue += worleyValue * noiseValue;
@@ -334,8 +339,6 @@ ImageView TextureLoader::load3DNoiseTexture(const VkExtent3D& dimension, VkImage
     vkCreateImageView(m_renderContext->device(), &view, nullptr, &result.m_vkImageView);
 
     result.m_imageInfo = imageInfo;
-
-
     return result;
 }
 
