@@ -59,11 +59,6 @@ Material* CubicFog::getMaterial()
     return &m_material;
 }
 
-FogMaterial* CubicFog::getFogMaterial()
-{
-    return &m_material;
-}
-
 FogMaterial::CloudData* CubicFog::shaderData()
 {
     return &m_shaderData;

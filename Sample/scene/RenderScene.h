@@ -36,5 +36,4 @@ private:
 
     ImageView m_cloudTexture;
     ImageView m_noiseTexture;
-    CubicFog* m_cubicFog;
 };

@@ -5,7 +5,7 @@
 /* --------------------------------- Constructors  --------------------------------- */
 
 ImageView::ImageView(VkDevice device, const Image& image, VkImageViewType viewType):
-    m_imageInfo(image)
+    imageInfo(image)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -18,7 +18,7 @@ ImageView::ImageView(VkDevice device, const Image& image, VkImageViewType viewTy
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(device, &viewInfo, nullptr, &m_vkImageView) != VK_SUCCESS) {
+    if (vkCreateImageView(device, &viewInfo, nullptr, &vkImageView) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture image view!");
     }
 }
@@ -31,21 +31,21 @@ ImageView::~ImageView()
 
 void ImageView::cleanUp(VkDevice device)
 {
-    vkDestroyImageView(device, m_vkImageView, nullptr);
-    m_imageInfo.cleanUp(device);
+    vkDestroyImageView(device, vkImageView, nullptr);
+    imageInfo.cleanUp(device);
 }
 
 const VkImageView& ImageView::view() const
 {
-    return m_vkImageView;
+    return vkImageView;
 }
 
 VkFormat ImageView::Vkformat() const
 {
-    return m_imageInfo.Vkformat;
+    return imageInfo.Vkformat;
 }
 
 uint32_t ImageView::mipLevels() const
 {
-    return m_imageInfo.mipLevels;
+    return imageInfo.mipLevels;
 }

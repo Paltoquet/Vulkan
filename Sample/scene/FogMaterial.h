@@ -25,9 +25,6 @@ public:
     void createTextureSampler(RenderContext& renderContext, const ImageView& imageView);
     void cleanUp(RenderContext& renderContext) override;
 
-    // update interface
-    void updateFogTexture(RenderContext& renderContext, const ImageView& imageView, VkDescriptorSet descriptorSet, VkBuffer buffer);
-
 private:
     ImageView m_noiseTexture3D;
     VkSampler m_textureSampler;

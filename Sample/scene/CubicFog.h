@@ -17,14 +17,11 @@ public:
 
 public:
     void update(RenderContext& renderContex, Camera& camera, const DescriptorEntry& descriptorEntry) override;
-
     Mesh* getMesh() override;
     Material* getMaterial() override;
     FogMaterial::CloudData* shaderData();
-    FogMaterial* getFogMaterial();
     void setFogDensity(float density);
     float fogDensity() const;
-
 
 private:
     Cube& m_mesh;

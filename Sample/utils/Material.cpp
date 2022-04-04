@@ -35,6 +35,8 @@ void Material::createDescriptorLayouts(RenderContext& renderContext)
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(m_descriptorBindings.size());
     layoutInfo.pBindings = m_descriptorBindings.data();
+    // needs VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
+    //layoutInfo.pNext = m_bindingStrategies.size() > 0 ? m_bindingStrategies.data() : NULL;
 
     if (vkCreateDescriptorSetLayout(renderContext.device(), &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor set layout!");

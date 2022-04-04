@@ -9,8 +9,7 @@
 #include <utils/Quad.h>
 
 RenderScene::RenderScene():
-    m_textureLoader(nullptr),
-    m_cubicFog(nullptr)
+    m_textureLoader(nullptr)
 {
     
 }
@@ -65,7 +64,6 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
     /* -------------- Init SceneObjects -------------- */
     auto fogObject = std::make_unique<CubicFog>(*cubePtr, *fogMaterialPtr);
     auto quadObject = std::make_unique<QuadTexture>(*quadPtr, *quadMaterialPtr);
-    m_cubicFog = fogObject.get();
     m_sceneObjects.push_back(std::move(fogObject));
     //m_sceneObjects.push_back(std::move(quadObject));
 }
@@ -114,15 +112,8 @@ void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, V
 
     if (viewParams.noiseSizeChanged()) {
         VkExtent3D dimension3D = VkExtent3D({ 48, 48, 64 });
-        auto updatedCloudTexture = m_textureLoader->load3DCloudTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT, viewParams.noiseSize());
-
-        FogMaterial* fogMaterial = m_cubicFog->getFogMaterial();
-        std::vector<DescriptorEntry> descriptors = descriptorTable.getMaterialDescriptors(fogMaterial->materialId());
-        for (auto& descriptor : descriptors) {
-            fogMaterial->updateFogTexture(renderContext, updatedCloudTexture, descriptor.descriptorSet, descriptor.buffer);
-        }
-        m_cloudTexture.cleanUp(renderContext.device());
-        m_cloudTexture = updatedCloudTexture;
+        vkDeviceWaitIdle(renderContext.device());
+        m_textureLoader->updateCloudTexture(m_cloudTexture, viewParams.noiseSize());
     }
 
     // ------------------ SceneObjects

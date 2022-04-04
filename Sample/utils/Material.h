@@ -47,5 +47,6 @@ protected:
 
     VkDescriptorSetLayout m_descriptorSetLayout;
     std::vector<VkDescriptorSetLayoutBinding> m_descriptorBindings;
+    std::vector<VkDescriptorSetLayoutBindingFlagsCreateInfo> m_bindingStrategies;
     std::vector<VkWriteDescriptorSet> m_descriptorWrites;
 };

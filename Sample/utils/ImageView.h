@@ -19,7 +19,7 @@ public:
     uint32_t mipLevels() const;
 
 public:
-    VkImageView m_vkImageView;
-    Image m_imageInfo;
+    VkImageView vkImageView;
+    Image imageInfo;
 };
 

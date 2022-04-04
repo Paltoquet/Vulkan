@@ -265,6 +265,8 @@ std::vector<const char*> Platform::getRequiredExtensions()
     if (RenderContext::enableValidationLayers) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+    // update descriptor on the fly
+    //extensions.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
     return extensions;
 }
