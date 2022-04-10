@@ -7,7 +7,7 @@
 class BrownianNoise3D
 {
 public:
-    BrownianNoise3D(const glm::ivec3& kernelSize, size_t nbLayers);
+    BrownianNoise3D(const glm::ivec3& kernelSize, size_t nbLayers, float randomSeed);
     ~BrownianNoise3D();
 
 public:

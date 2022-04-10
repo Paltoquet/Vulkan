@@ -37,9 +37,9 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
 
     /* -------------- Textures -------------- */
     VkExtent2D dimension = VkExtent2D({ 512, 512 });
-    VkExtent3D dimension3D = VkExtent3D({ 48, 48, 64 });
+    VkExtent3D dimension3D = VkExtent3D({ 32, 32, 32 });
 
-    m_cloudTexture = m_textureLoader->load3DCloudTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT, viewParams.noiseSize());
+    m_cloudTexture = m_textureLoader->load3DCloudTexture(dimension3D, VK_IMAGE_ASPECT_COLOR_BIT, viewParams.noiseSize(), viewParams.randomSeed());
     m_noiseTexture = m_textureLoader->loadWorleyNoiseTexture(dimension, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     //m_textures.push_back(m_textureLoader->loadTexture("ressources/textures/viking_room.png", VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
 
@@ -110,10 +110,10 @@ void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, V
 
     // ------------------- Textures
 
-    if (viewParams.noiseSizeChanged()) {
-        VkExtent3D dimension3D = VkExtent3D({ 48, 48, 64 });
+    if (viewParams.noiseSizeChanged() || viewParams.randomSeedChanged()) {
+        VkExtent3D dimension3D = VkExtent3D({ 32, 32, 32 });
         vkDeviceWaitIdle(renderContext.device());
-        m_textureLoader->updateCloudTexture(m_cloudTexture, viewParams.noiseSize());
+        m_textureLoader->updateCloudTexture(m_cloudTexture, viewParams.noiseSize(), viewParams.randomSeed());
     }
 
     // ------------------ SceneObjects
@@ -121,7 +121,7 @@ void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, V
     for (auto& sceneObject : m_sceneObjects) {
         auto* material = sceneObject->getMaterial();
         auto& descriptorEntry = currentDescriptor.getDescriptorEntry(material->materialId());
-        sceneObject->update(renderContext, camera, descriptorEntry);
+        sceneObject->update(renderContext, camera, viewParams, descriptorEntry);
     }
 }
 

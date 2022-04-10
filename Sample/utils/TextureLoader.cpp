@@ -179,7 +179,7 @@ ImageView TextureLoader::loadWorleyNoiseTexture(const VkExtent2D& dimension, con
     return ImageView(m_renderContext->device(), imageInfo, VK_IMAGE_VIEW_TYPE_2D);
 }
 
-ImageView TextureLoader::load3DCloudTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect, float noiseScale)
+ImageView TextureLoader::load3DCloudTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect, float noiseScale, float randomSeed)
 {
     ImageView result;
     result.imageInfo.Vkformat = VK_FORMAT_R8_UNORM;
@@ -231,10 +231,10 @@ ImageView TextureLoader::load3DCloudTexture(const VkExtent3D& dimension, VkImage
 
     /* --------------------------------- Load Buffers --------------------------------- */
     // Compute 3D texture data
-    CloudGenerator generator(dimension.width, dimension.height, dimension.depth);
+    CloudGenerator generator(dimension.width, dimension.height, dimension.depth, randomSeed);
     std::vector<unsigned char> data = generator.compute3DTexture(noiseScale);
     // Load data on the GPU
-    updateImageView(result, data);
+    updateImageView(result, data, randomSeed);
     // Create image view
     VkImageViewCreateInfo view{};
     view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -252,15 +252,15 @@ ImageView TextureLoader::load3DCloudTexture(const VkExtent3D& dimension, VkImage
     return result;
 }
 
-void TextureLoader::updateCloudTexture(ImageView& imageView, float noiseScale)
+void TextureLoader::updateCloudTexture(ImageView& imageView, float noiseScale, float randomSeed)
 {
-    CloudGenerator generator(imageView.imageInfo.textureSize.width, imageView.imageInfo.textureSize.height, imageView.imageInfo.textureSize.depth);
+    CloudGenerator generator(imageView.imageInfo.textureSize.width, imageView.imageInfo.textureSize.height, imageView.imageInfo.textureSize.depth, randomSeed);
     std::vector<unsigned char> data = generator.compute3DTexture(noiseScale);
     // Load data on the GPU
-    updateImageView(imageView, data);
+    updateImageView(imageView, data, randomSeed);
 }
 
-void TextureLoader::updateImageView(ImageView& imageView, const std::vector<unsigned char>& data)
+void TextureLoader::updateImageView(ImageView& imageView, const std::vector<unsigned char>& data, float randomSeed)
 {
     // Create a host-visible staging buffer that contains the raw image data
     std::size_t texMemSize = data.size();

@@ -17,6 +17,7 @@ CubicFog::CubicFog(Cube& mesh, FogMaterial& material) :
         planeIndex += 3;
     }
     m_shaderData.fogDensity = 0.6f;
+    m_shaderData.fogSpeed = glm::vec4(1.0f);
 }
 
 CubicFog::~CubicFog()
@@ -26,13 +27,14 @@ CubicFog::~CubicFog()
 
 /* -------------------------- Public methods -------------------------- */
 
-void CubicFog::update(RenderContext& renderContext, Camera& camera, const DescriptorEntry& descriptorEntry)
+void CubicFog::update(RenderContext& renderContext, Camera& camera, const ViewParams& viewParams, const DescriptorEntry& descriptorEntry)
 {
     void* fogData;
     glm::mat3 rot = camera.arcBallModel();
     rot = glm::inverse(rot);
     auto worldEye = rot * camera.eye();
     m_shaderData.worldCamera = glm::vec4(worldEye, 1.0);
+    m_shaderData.fogSpeed = glm::vec4(viewParams.speed());
 
     vkMapMemory(renderContext.device(), descriptorEntry.memory, 0, sizeof(FogMaterial::CloudData), 0, &fogData);
     memcpy(fogData, &m_shaderData, sizeof(FogMaterial::CloudData));

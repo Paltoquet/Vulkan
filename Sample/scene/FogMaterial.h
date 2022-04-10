@@ -16,6 +16,7 @@ public:
         // Should be an array of vec3, but vulkan apparently sucks at indexing arrays of vector3 due to alignment rounded to 16
         // Extension GL_EXT_scalar_block_layout might get it worked out, but why ???????
         glm::vec4 planes[18];
+        glm::vec4 fogSpeed;
         alignas(16) float fogDensity;
     };
 

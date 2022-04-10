@@ -18,6 +18,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 layout(set = 1, binding = 3) uniform CloudData {
     vec4 worldCamera;
     vec4[18] planes;
+    vec4 fogSpeed;
     float fogDensity;
 } cloud;
 

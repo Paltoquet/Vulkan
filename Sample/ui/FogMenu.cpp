@@ -8,7 +8,9 @@
 FogMenu::FogMenu(ViewParams& viewParams):
     m_viewParams(viewParams),
     m_fogScale(viewParams.fogScale()),
-    m_noiseSize(viewParams.noiseSize())
+    m_noiseSize(viewParams.noiseSize()),
+    m_randomSeed(viewParams.randomSeed()),
+    m_fogSpeed(viewParams.speed())
 {
 
 }
@@ -85,7 +87,7 @@ void FogMenu::draw(RenderContext& renderContext)
     ImGui::NewFrame();
     //ImGui::ShowDemoWindow();
 
-    auto windowSize = ImVec2(renderContext.width() * 0.25f, renderContext.height() * 0.2f);
+    auto windowSize = ImVec2(renderContext.width() * 0.25f, renderContext.height() * 0.32f);
     auto windowPosition = ImVec2(renderContext.width() - windowSize.x, 0);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Once);
     ImGui::SetNextWindowPos(windowPosition, ImGuiCond_Once);
@@ -93,7 +95,9 @@ void FogMenu::draw(RenderContext& renderContext)
     ImGui::Text("Upload a 3D texture on the GPU");
     //ImGui::Checkbox("Demo Window", &show_demo_window);
     ImGui::SliderFloat("Fog Dimension", &m_fogScale, 1.0f, 8.0f); // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::SliderFloat("Noise Dimension", &m_noiseSize, 0.5f, 32.0f); // Edit 1 float using a slider from 0.0f to 1.0f
+    ImGui::SliderFloat("Noise Dimension", &m_noiseSize, 0.1f, 8.0f); // Edit 1 float using a slider from 0.0f to 1.0f
+    ImGui::SliderFloat("Random Seed", &m_randomSeed, 1.0f, 42.0f); // Edit 1 float using a slider from 0.0f to 1.0f
+    ImGui::SliderFloat("Fog Speed", &m_fogSpeed, 0.0f, 2.0f); // Edit 1 float using a slider from 0.0f to 1.0f
 
     //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
     //if (ImGui::Button("Button"))  // Buttons return true when clicked (most widgets return true when edited/activated)
@@ -106,7 +110,7 @@ void FogMenu::draw(RenderContext& renderContext)
 
     ImGui::Render();
 
-    m_viewParams.update(m_fogScale, m_noiseSize);
+    m_viewParams.update(m_fogScale, m_noiseSize, m_randomSeed, m_fogSpeed);
 }
 
 void FogMenu::fillCommandBuffer(VkCommandBuffer& cmdBuffer)

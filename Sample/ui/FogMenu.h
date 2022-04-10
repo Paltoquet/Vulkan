@@ -23,13 +23,13 @@ public:
     void fillCommandBuffer(VkCommandBuffer& cmdBuffer);
     void cleanUp(RenderContext& renderContext);
 
-public:
-    float getDimension() const;
-
 private:
     VkDescriptorPool m_imGUIPool;
     ViewParams& m_viewParams;
 
+public:
     float m_fogScale;
     float m_noiseSize;
+    float m_randomSeed;
+    float m_fogSpeed;
 };

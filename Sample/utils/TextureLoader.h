@@ -13,10 +13,10 @@ public:
     ImageView loadTexture(const std::string& path, const VkFormat& format, VkImageAspectFlags aspect);
     ImageView loadNoiseTexture(const VkExtent2D& dimension, const VkFormat& format, VkImageAspectFlags aspect);
     ImageView loadWorleyNoiseTexture(const VkExtent2D& dimension, const VkFormat& format, VkImageAspectFlags aspect);
-    ImageView load3DCloudTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect, float noiseScale);
+    ImageView load3DCloudTexture(const VkExtent3D& dimension, VkImageAspectFlags aspect, float noiseScale, float randomSeed);
 
-    void updateCloudTexture(ImageView& imageView, float noiseScale);
-    void updateImageView(ImageView& imageView, const std::vector<unsigned char>& data);
+    void updateCloudTexture(ImageView& imageView, float noiseScale, float randomSeed);
+    void updateImageView(ImageView& imageView, const std::vector<unsigned char>& data, float randomSeed);
 
 private:
     void generateMipmaps(VkCommandBuffer commandBuffer, Image& image, int32_t texWidth, int32_t texHeight);

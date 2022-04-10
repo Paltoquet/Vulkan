@@ -7,10 +7,10 @@
 #include <iostream> 
 #include <fstream> 
 
-BrownianNoise3D::BrownianNoise3D(const glm::ivec3& kernelSize, size_t nbLayers):
+BrownianNoise3D::BrownianNoise3D(const glm::ivec3& kernelSize, size_t nbLayers, float randomSeed):
     m_kernelSize(kernelSize),
     m_nbLayers(nbLayers),
-    m_randomSeed(42),
+    m_randomSeed(randomSeed),
     m_baseFrequency(0.05f),
     m_rateOffChanged(2.0f)
 {

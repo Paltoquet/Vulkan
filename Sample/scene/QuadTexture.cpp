@@ -17,7 +17,7 @@ QuadTexture::~QuadTexture()
 
 /* -------------------------- Public methods -------------------------- */
 
-void QuadTexture::update(RenderContext& renderContext, Camera& camera, const DescriptorEntry& descriptorEntry)
+void QuadTexture::update(RenderContext& renderContext, Camera& camera, const ViewParams& viewParams, const DescriptorEntry& descriptorEntry)
 {
 
 }

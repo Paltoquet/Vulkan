@@ -22,6 +22,7 @@ layout(set = 1, binding = 1) uniform sampler3D texSampler3D;
 layout(set = 1, binding = 3) uniform CloudData {
     vec4 worldCamera;
     vec4[18] planes;
+    vec4 fogSpeed;
     float fogDensity;
 } cloud;
 
@@ -75,7 +76,8 @@ float sample3DTexture(vec3 pos)
 {
     float speed = 0.12;
     // Change depth value for adding a scrolling effect
-    pos.z += speed * ubo.time;
+    pos.z += cloud.fogSpeed.x * ubo.time;
+    pos.z = mod(pos.z, 1.0);
     float noiseValue = texture(texSampler3D, pos).r;
     return noiseValue;
 }

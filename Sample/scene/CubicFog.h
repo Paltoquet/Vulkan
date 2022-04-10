@@ -16,7 +16,7 @@ public:
     ~CubicFog();
 
 public:
-    void update(RenderContext& renderContex, Camera& camera, const DescriptorEntry& descriptorEntry) override;
+    void update(RenderContext& renderContex, Camera& camera, const ViewParams& viewParams, const DescriptorEntry& descriptorEntry) override;
     Mesh* getMesh() override;
     Material* getMaterial() override;
     FogMaterial::CloudData* shaderData();
