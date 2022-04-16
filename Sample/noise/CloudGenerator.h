@@ -14,10 +14,13 @@ public:
 public:
     std::vector<unsigned char> compute3DTexture(float noiseScale);
     float computeFBM(const glm::vec3& pixelPos, float scale);
+    float heightProbabilityFunction(float height);
+    float heightDensityFunction(float height);
 
 private:
     WorleyNoise3D m_worleyGenerator;
     float m_randomSeed;
+    float m_cloudDensity;
     uint32_t m_fbmLevels;
     uint32_t m_width;
     uint32_t m_height;

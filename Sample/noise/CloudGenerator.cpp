@@ -14,6 +14,7 @@ float remap(float val, float l0, float h0, float l1, float h1)
 CloudGenerator::CloudGenerator(uint32_t width, uint32_t height, uint32_t depth, float randomSeed):
     m_worleyGenerator(glm::ivec3(4, 4, 4)),
     m_randomSeed(randomSeed),
+    m_cloudDensity(1.0f),
     m_fbmLevels(3),
     m_width(width),
     m_height(height),
@@ -60,7 +61,12 @@ std::vector<unsigned char> CloudGenerator::compute3DTexture(float noiseScale)
                 pixelPos = glm::vec3(x, y, z);
                 float value = noiseGenerator.evaluate(pixelPos * fullScale);
                 float fbm = computeFBM(pixelPos, firstScale);
-                value = remap(value, fbm - 1.0f, 1.0f, 0.0f, 1.0f) * 255.0f;
+                float heightProbability = heightProbabilityFunction(pixelPos.y / float(m_height));
+                float densityValue = m_cloudDensity * heightDensityFunction(pixelPos.y / float(m_height));
+                value = remap(value, fbm - 1.0f, 1.0f, 0.0f, 1.0f);
+                value = heightProbability * value;
+                value = glm::clamp(value, 0.0f, 1.0f);
+                value *= 255.0f;
                 result[x + y * m_width + z * m_width * m_height] = value;
             }
         }
@@ -87,4 +93,35 @@ float CloudGenerator::computeFBM(const glm::vec3& pixelPos, float scale)
 
     result /= max;
     return result;
+}
+
+float CloudGenerator::heightProbabilityFunction(float height)
+{
+    constexpr float lowerLimit = 0.22f;
+    constexpr float upperLimit = 0.88f;
+    // Discard lower part of clouds
+    float lower = remap(height, 0.0, lowerLimit, 0.0f, 1.0f);
+    lower = glm::clamp(lower, 0.0f, 1.0f);
+
+    //Discard upper part of clouds
+    float upper = remap(height, upperLimit * 0.8f, upperLimit, 1.0f, 0.0f);
+    upper = glm::clamp(upper, 0.0f, 1.0f);
+
+    return lower * upper;
+}
+
+float CloudGenerator::heightDensityFunction(float height)
+{
+    constexpr float lowerLimit = 0.15f;
+    constexpr float upperLimit = 0.9f;
+
+    // Reduce density of lower part of clouds
+    float lower = remap(height, 0.0f, lowerLimit, 0.0f, 1.0f);
+    lower = glm::clamp(lower, 0.0f, 1.0f);
+
+    //Reduce density of upper part of clouds
+    float upper = remap(height, upperLimit, 1.0f, 1.0f, 0.0f);
+    upper = glm::clamp(upper, 0.0f, 1.0f);
+
+    return lower * upper;
 }

@@ -3,8 +3,8 @@
 /* --------------------------------- Constructors --------------------------------- */
 
 ViewParams::ViewParams():
-    m_fogScale(1.0f),
-    m_noiseSize(2.2f),
+    m_fogScale(1.812f),
+    m_noiseSize(2.37f),
     m_randomSeed(42.0f),
     m_speed(0.05f),
     m_fogScaleChanged(false),
