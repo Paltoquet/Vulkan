@@ -70,20 +70,15 @@ void CameraController::mouseScroll(double scrollDelta)
 
 glm::vec3 CameraController::getArcBallVector(const glm::vec2& mousePos) const
 {
-    // Vulcan coordinate system, z is up
     glm::vec3 result;
     result.x = mousePos.x / m_width;
-    result.z = mousePos.y / m_height;
-    // top left corner is 0 in screen space
-    result.z = 1.0f - result.z;
-    // [-1, 1] interval
+    result.y = mousePos.y / m_height;
     result = result * 2.0f - 1.0f;
-    float projectedVecSquared = result.x * result.x + result.z * result.z;
+    float projectedVecSquared = result.x * result.x + result.y * result.y;
     if (projectedVecSquared <= 1) {
-        //radius is 1 we have the projected vector on the XZ plane
-        result.y = glm::sqrt(1.0f - projectedVecSquared);  // Pythagore
+        result.z = glm::sqrt(1.0f - projectedVecSquared);  // Pythagore
     } else {
-        result.y = 0;
+        result.z = 0;
     }
     result = glm::normalize(result);
     return result;

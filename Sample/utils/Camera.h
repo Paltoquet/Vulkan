@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 class Camera
 {

@@ -100,7 +100,6 @@ void RenderScene::updateUniforms(RenderContext& renderContext, Camera& camera, V
     matrixBuffer.buffer.model = camera.arcBallModel() * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, fogScale));
     matrixBuffer.buffer.view = camera.viewMatrix();
     matrixBuffer.buffer.proj = camera.projectionMatrix();
-    matrixBuffer.buffer.proj[1][1] *= -1;
     matrixBuffer.buffer.time = time;
 
     void* matrixData;

@@ -49,8 +49,8 @@ void Platform::initialize()
     m_physicalDevice = pickPhysicalDevice();
     m_availableSwapChainInfos = querySwapChainSupport(m_physicalDevice);
 
-    // Looking in the y positif, cross(up, direction) -> vec3(1.0, 0.0, 0.0)
-    m_camera = std::make_unique<Camera>(glm::vec2(m_dimension.width, m_dimension.height), glm::vec3(0.0f, -3.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), 45.0f);
+    // Looking in the z negatif, just like standard OpenGL we use a right handed coordinate system for all world space computation, glm will flipped z during projection
+    m_camera = std::make_unique<Camera>(glm::vec2(m_dimension.width, m_dimension.height), glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 45.0f);
     m_cameraController = std::make_unique<CameraController>(m_camera.get(), m_dimension.width, m_dimension.height);
     m_viewParams = std::make_unique<ViewParams>();
 
@@ -110,7 +110,6 @@ void Platform::mouseScroll(double scrollDelta)
     /*float currentOpacity = m_engine->cubicFog().fogDensity();
     currentOpacity += scrollDelta / 20.0f;
     m_engine->cubicFog().setFogDensity(currentOpacity);*/
-    //std::cout << "scroll Delta " << currentOpacity << std::endl;
 }
 
 void Platform::cleanUp()
