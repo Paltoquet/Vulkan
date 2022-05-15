@@ -8,6 +8,8 @@ class WorleyNoise3D
 {
 public:
     WorleyNoise3D(const glm::ivec3& kernelSize);
+    WorleyNoise3D(const glm::ivec3& kernelSize, float randomSeed);
+
     ~WorleyNoise3D();
 
 public:

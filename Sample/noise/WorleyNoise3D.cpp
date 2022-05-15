@@ -19,6 +19,13 @@ WorleyNoise3D::WorleyNoise3D(const glm::ivec3& kernelSize):
     computeKernel();
 }
 
+WorleyNoise3D::WorleyNoise3D(const glm::ivec3& kernelSize, float randomSeed) :
+    m_kernelSize(kernelSize),
+    m_randomSeed(randomSeed)
+{
+    computeKernel();
+}
+
 
 WorleyNoise3D::~WorleyNoise3D()
 {

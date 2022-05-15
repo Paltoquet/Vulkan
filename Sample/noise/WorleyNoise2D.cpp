@@ -19,6 +19,13 @@ WorleyNoise2D::WorleyNoise2D(const glm::vec2& kernelSize):
     computeKernel();
 }
 
+WorleyNoise2D::WorleyNoise2D(const glm::vec2& kernelSize, float randomSeed) :
+    m_kernelSize(kernelSize),
+    m_randomSeed(randomSeed)
+{
+    computeKernel();
+}
+
 
 WorleyNoise2D::~WorleyNoise2D()
 {

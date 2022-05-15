@@ -8,6 +8,7 @@ class WorleyNoise2D
 {
 public:
     WorleyNoise2D(const glm::vec2& kernelSize);
+    WorleyNoise2D(const glm::vec2& kernelSize, float randomSeed);
     ~WorleyNoise2D();
 
 public:
