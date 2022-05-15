@@ -32,4 +32,11 @@ public:
     float m_noiseSize;
     float m_randomSeed;
     float m_fogSpeed;
+    float m_lightAbsorption;
+    float m_densityTreshold;
+    float m_inScatering;
+    float m_outScatering;
+    float m_phaseFactor;
+    float m_phaseOffset;
+    glm::vec4 m_lightColor;
 };

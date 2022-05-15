@@ -21,59 +21,51 @@ layout(set = 1, binding = 1) uniform sampler3D texSampler3D;
 
 layout(set = 1, binding = 3) uniform CloudData {
     vec4 worldCamera;
-    vec4[18] planes;
+    vec4 worldLightPos;
+    vec4 bboxMin;
+    vec4 bboxMax;
+    vec4 lightColor;
+    vec4 lightAbsorption;
+    vec4 densityTreshold;
+    vec4 phaseParams;
     vec4 fogSpeed;
     float fogDensity;
 } cloud;
 
+/* --------------------------- Defines --------------------------- */
 
-/*
-  Find the intersection of a plane and a line.
-  Parameters:
-  P0 : A point on the plane
-  P01: Another point of the plane
-  P02: Another point of the plane
-  la: Line point a
-  lb: Line point b
-       .P1__________
-       |            |
-       |        lb  |
-       |       /    |
-    P0 .______/_____.P2
-             /
-            /la
-  Returns a vector vec.xyzw where x is and indicator. x < 0 if there is no intersection or
-  infinite intersections (line is on plane).
-  Otherwise, the intersection point coordinates are returned in vec.yzw.
-*/
-bool planeLineIntersection(vec3 P0, vec3 P1, vec3 P2, vec3 la, vec3 lb, inout vec3 result) {
-    // Many thanks to wikipedia
-    // Reference:
-    // https://en.wikipedia.org/wiki/Line%E2%80%93plane_intersection
-    vec3 P01 = P1 - P0;
-    vec3 P02 = P2 - P0;
+float nbSamples = 128.0;
+float nbLightSamples = 58.0;
+float darknessThreshold = 0.05;
 
-    vec3 lab = lb - la;
-    float det = - dot(lab, cross(P01,P02));
+// Returns (dstToBox, dstInsideBox). If ray misses box, dstInsideBox will be zero
+vec2 rayBoxDist(vec3 bboxMin, vec3 bboxMax, vec3 origin, vec3 invRaydir) {
+    // Adapted from: http://jcgt.org/published/0007/03/04/
+    vec3 t0 = (bboxMin - origin) * invRaydir;
+    vec3 t1 = (bboxMax - origin) * invRaydir;
+    vec3 tmin = min(t0, t1);
+    vec3 tmax = max(t0, t1);
+    
+    float dstA = max(max(tmin.x, tmin.y), tmin.z);
+    float dstB = min(tmax.x, min(tmax.y, tmax.z));
 
-    if (abs(det) < 0.01) {
-        return false;
-    }
+    // CASE 1: ray intersects box from outside (0 <= dstA <= dstB)
+    // dstA is dst to nearest intersection, dstB dst to far intersection
 
-    float t = 1.0 / det * dot(cross(P01, P02), la - P0);
-    float u = 1.0 / det * dot(cross(P02, -lab), la - P0);
-    float v = 1.0 / det * dot(cross(-lab, P01), la - P0);
+    // CASE 2: ray intersects box from inside (dstA < 0 < dstB)
+    // dstA is the dst to intersection behind the ray, dstB is dst to forward intersection
 
-    result = P0 + P01 * u + P02 * v;
+    // CASE 3: ray misses box (dstA > dstB)
 
-    bool insideFace = u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0;
-    //bool insideSegment = t >= 0.0 && t <= 1.0; 
-
-    return insideFace /*&& insideSegment*/;
+    float dstToBox = max(0, dstA);
+    float dstInsideBox = max(0, dstB - dstToBox);
+    return vec2(dstToBox, dstInsideBox);
 }
 
 float sample3DTexture(vec3 pos)
 {
+    //[-0.5, 0.5] -> [-1; 1]  -> [0; 2] -> [0; 1]
+    pos = (pos * 2.0 + 1.0) / 2.0;
     float speed = 0.12;
     // Change depth value for adding a scrolling effect
     pos.z += cloud.fogSpeed.x * ubo.time;
@@ -83,50 +75,87 @@ float sample3DTexture(vec3 pos)
 }
 
 void main() {
-    float noiseValue = texture(texSampler3D, fragTexCoord).r;
 
-    int nbIntersections = 0;
-    vec3 intersections[6];
-    vec3 result;
-    for(int i = 0; i < 6; i++) {
-        vec3 P0 = cloud.planes[i * 3].xyz;
-        vec3 P1 = cloud.planes[i * 3 + 1].xyz;
-        vec3 P2 = cloud.planes[i * 3 + 2].xyz;
-        bool foundIntersection = planeLineIntersection(P0, P1, P2, cloud.worldCamera.xyz, worldPosition, intersections[nbIntersections]);
-        if(foundIntersection){
-            nbIntersections++;
-        }
-    }
+    vec3 origin = cloud.worldCamera.xyz;
+    vec3 rayDir = worldPosition - origin;
+    rayDir = normalize(rayDir);
 
-    if(nbIntersections != 2){
+    vec3 invRayDir = vec3(1.0) / rayDir;
+    vec2 boxDistance = rayBoxDist(cloud.bboxMin.xyz, cloud.bboxMax.xyz, origin, invRayDir);
+    float cosAngle = dot(rayDir, cloud.worldLightPos.xyz);
+
+    bool hasFoundIntersection = boxDistance.y > 0;
+    if(!hasFoundIntersection){
         discard;
     }
 
+    vec3 firstPoint = origin + rayDir * boxDistance.x;
+    vec3 secondPoint = firstPoint + rayDir * boxDistance.y;
 
-    vec3 first = intersections[0].y < intersections[1].y ? intersections[0] : intersections[1];
-    vec3 second = intersections[0].y < intersections[1].y ? intersections[1] : intersections[0];
-    vec3 direction = second - first;
-    float nbSamples = 128;
-    float insideTreshold = 0.6;
-    vec3 lightColor = vec3(1.0, 1.0, 1.0);
+    vec3 direction = secondPoint - firstPoint;
+    float totalDistance = length(direction);
+
+    // March through volume:
+    vec3 currentPosition;
+    float distTravelled = 0.0;
+    float transmittance = 1.0;
+    vec3 lightDir;
+    float stepSize = 1.0 / nbSamples;
     float accumulation = 0.0;
-    float distanceOffset = length(direction) / nbSamples;
+    float lightStepSize = 1.0 / nbLightSamples; 
 
-    for(int i = 0; i <= nbSamples; i++){
-        float c = float(i) / nbSamples;
-        vec3 p = first + c * direction;
-        //[-0.5, 0.5] -> [-1; 1]  -> [0; 2] -> [0; 1]
-        p = (p * 2.0 + 1.0) / 2.0;
-        float noiseValue = sample3DTexture(p);
-        if(noiseValue > insideTreshold){
-            accumulation += distanceOffset;
-        }
+    while (distTravelled < totalDistance) {
+        currentPosition = firstPoint + rayDir * distTravelled;
+        float density = cloud.phaseParams.x * sample3DTexture(currentPosition);
+
+        float shadowValue = 0.0;
+        lightDir = normalize(cloud.worldLightPos.xyz - currentPosition);
+        vec3 invLightDir = 1.0 / lightDir;
+        vec2 lightBoxDistance = rayBoxDist(cloud.bboxMin.xyz, cloud.bboxMax.xyz, currentPosition, invLightDir);
+        vec3 lightSamplePoint = currentPosition;
+        vec3 lightStepVector = lightDir * lightStepSize;
+        vec3 lightLastPoint = currentPosition + lightDir * lightBoxDistance.y;
+        float lightDistanceToTravel = length(lightLastPoint - currentPosition);
+        float lightDistanceTravelled = 0.0;
+
+        //if (density > cloud.densityTreshold.x) {
+            while (lightDistanceTravelled < lightDistanceToTravel) {
+                float lsample = 1.0;
+                float maxCoord = max(max(abs(lightSamplePoint.x), abs(lightSamplePoint.y)), abs(lightSamplePoint.z));
+                bool outSideBox = (maxCoord > 1.0);
+                if(!outSideBox){
+                    //float lsample = cloud.phaseParams.x * sample3DTexture(lightSamplePoint);
+                    //shadowDist += lsample > cloud.phaseParams.y ? lsample : 0.0;
+
+                    lsample = sample3DTexture(lightSamplePoint);
+                }
+                shadowValue += lsample;
+                lightDistanceTravelled += lightStepSize;
+                lightSamplePoint += lightStepVector;
+            }
+
+            float shadowTerm = exp(-shadowValue * cloud.lightAbsorption.x);
+            float curdensity = density * stepSize;
+            float absorbedLight = shadowTerm * curdensity;
+            accumulation += absorbedLight * transmittance;
+            //transmittance *= exp(-density * stepSize / cloud.fogDensity);
+            transmittance *= 1.0 - curdensity;
+        //}
+
+        distTravelled += stepSize;
     }
 
-    noiseValue = exp(-accumulation / cloud.fogDensity);
-    noiseValue = clamp(noiseValue, 0.0, 1.0);
-    noiseValue = 1.0 - noiseValue;
-    outColor = vec4(noiseValue, noiseValue, noiseValue, 1.0);
-    //outColor = vec4(fragTexCoord.z, fragTexCoord.z, fragTexCoord.z, 1.0);
-    //outColor = vec4(fragTexCoord.x, fragTexCoord.y, 0.0, 1.0);
+
+    outColor.xyz = cloud.lightColor.xyz * accumulation;
+    outColor.a = 1.0;
+
+    /*while (distTravelled < totalDistance) {
+        currentPosition = firstPoint + rayDir * distTravelled;
+        float cursample = cloud.phaseParams.x * sample3DTexture(currentPosition);
+        accumulation += cursample * stepSize;
+        distTravelled += stepSize;
+    }
+
+    outColor = vec4(accumulation);*/
+
 }

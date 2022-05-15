@@ -24,7 +24,10 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
 {
     m_textureLoader = std::make_unique<TextureLoader>(&renderContext);
     /* -------------- Init Meshes -------------- */
-    auto cube = std::make_unique<Cube>();
+    glm::mat3 vertexTransfo = glm::mat3(1.0f);
+    vertexTransfo[1][1] = 1.0f;
+
+    auto cube = std::make_unique<Cube>(vertexTransfo);
     cube->createBuffers(renderContext);
     Cube* cubePtr = cube.get();
 

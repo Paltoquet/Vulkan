@@ -10,7 +10,14 @@ FogMenu::FogMenu(ViewParams& viewParams):
     m_fogScale(viewParams.fogScale()),
     m_noiseSize(viewParams.noiseSize()),
     m_randomSeed(viewParams.randomSeed()),
-    m_fogSpeed(viewParams.speed())
+    m_fogSpeed(viewParams.speed()),
+    m_lightAbsorption(viewParams.lightAbsorption()),
+    m_densityTreshold(viewParams.densityTreshold()),
+    m_lightColor(viewParams.lightColor()),
+    m_inScatering(viewParams.inScatering()),
+    m_outScatering(viewParams.outScatering()),
+    m_phaseFactor(viewParams.phaseFactor()),
+    m_phaseOffset(viewParams.phaseOffset())
 {
 
 }
@@ -87,19 +94,25 @@ void FogMenu::draw(RenderContext& renderContext)
     ImGui::NewFrame();
     //ImGui::ShowDemoWindow();
 
-    auto windowSize = ImVec2(renderContext.width() * 0.25f, renderContext.height() * 0.32f);
+    auto windowSize = ImVec2(renderContext.width() * 0.25f, renderContext.height() * 0.48f);
     auto windowPosition = ImVec2(renderContext.width() - windowSize.x, 0);
     ImGui::SetNextWindowSize(windowSize, ImGuiCond_Once);
     ImGui::SetNextWindowPos(windowPosition, ImGuiCond_Once);
     ImGui::Begin("Volumetric Fog");
     ImGui::Text("Upload a 3D texture on the GPU");
     //ImGui::Checkbox("Demo Window", &show_demo_window);
-    ImGui::SliderFloat("Fog Dimension", &m_fogScale, 1.0f, 8.0f); // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::SliderFloat("Noise Dimension", &m_noiseSize, 0.1f, 8.0f); // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::SliderFloat("Random Seed", &m_randomSeed, 1.0f, 42.0f); // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui::SliderFloat("Fog Speed", &m_fogSpeed, 0.0f, 2.0f); // Edit 1 float using a slider from 0.0f to 1.0f
+    ImGui::SliderFloat("Fog Dimension", &m_fogScale, 1.0f, 8.0f);
+    ImGui::SliderFloat("Noise Dimension", &m_noiseSize, 0.1f, 8.0f);
+    ImGui::SliderFloat("Random Seed", &m_randomSeed, 1.0f, 42.0f);
+    ImGui::Text("Shader Parameters");
+    ImGui::SliderFloat("Light Absorption", &m_lightAbsorption, 0.0f, 2.0f);
+    ImGui::SliderFloat("Density Treshold", &m_densityTreshold, 0.0f, 1.0f);
+    ImGui::SliderFloat("In Scatering", &m_inScatering, 0.0f, 1.0f);
+    ImGui::SliderFloat("Out Scatering", &m_outScatering, 0.0f, 1.0f);
+    ImGui::SliderFloat("Phase Factor", &m_phaseFactor, 0.0f, 1.0f);
+    ImGui::SliderFloat("Phase Offset", &m_phaseOffset, 0.0f, 1.0f);
+    ImGui::ColorEdit4("Sun color", (float*)&m_lightColor); // Edit 3 floats representing a color
 
-    //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
     //if (ImGui::Button("Button"))  // Buttons return true when clicked (most widgets return true when edited/activated)
     //    counter++;
     //ImGui::SameLine();
@@ -110,7 +123,8 @@ void FogMenu::draw(RenderContext& renderContext)
 
     ImGui::Render();
 
-    m_viewParams.update(m_fogScale, m_noiseSize, m_randomSeed, m_fogSpeed);
+    m_viewParams.update(m_fogScale, m_noiseSize, m_randomSeed, m_fogSpeed, m_lightAbsorption, m_densityTreshold, 
+        m_lightColor, m_inScatering, m_outScatering, m_phaseFactor, m_phaseOffset);
 }
 
 void FogMenu::fillCommandBuffer(VkCommandBuffer& cmdBuffer)

@@ -17,7 +17,13 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 
 layout(set = 1, binding = 3) uniform CloudData {
     vec4 worldCamera;
-    vec4[18] planes;
+    vec4 worldLightPos;
+    vec4 bboxMin;
+    vec4 bboxMax;
+    vec4 lightColor;
+    vec4 lightAbsorption;
+    vec4 densityTreshold;
+    vec4 phaseParams;
     vec4 fogSpeed;
     float fogDensity;
 } cloud;
@@ -29,4 +35,6 @@ void main() {
     fragTexCoord = vec3(texturePos.x, texturePos.z, texturePos.y);
     worldPosition = inPosition;
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+    // Vulkan window space y point downward
+    //gl_Position.y = -gl_Position.y;
 }
