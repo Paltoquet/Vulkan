@@ -4,7 +4,7 @@ This projects feature a basic Vulkan renderer, using ImGui for the graphic inter
 
 The demo feature some raymarching through a 3D volume and some CPU noise generation algorithm for uploading 3D texture on the GPU.
 
-![ScreenShot](Sample\ressources\doc\ScreenShot.JPG) 
+![ScreenShot](https://github.com/Paltoquet/Vulkan/blob/main/Sample/ressources/doc/ScreenShot.JPG?raw=true)) 
 
 
 
