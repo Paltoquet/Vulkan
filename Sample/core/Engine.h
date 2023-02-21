@@ -4,6 +4,8 @@
 #include "DescriptorTable.h"
 #include "Window.h"
 #include <scene/RenderScene.h>
+#include <scene/BlurMaterial.h>
+#include <scene/ScreenBlur.h>
 #include <utils/Camera.h>
 #include <ui/ViewParams.h>
 #include <ui/FogMenu.h>
@@ -32,7 +34,10 @@ public:
     RenderContext* renderContext();
 
 private:
+    void createRenderPass();
     void createMainRenderPass();
+    void createBlurRenderPass();
+
     void createGraphicInterface(Window* window, ViewParams& viewParams);
     void createSyncObjects();
     void recreateSwapChain();
@@ -52,6 +57,10 @@ private:
     std::unique_ptr<FogMenu> m_graphicInterface;
     // Scene
     std::unique_ptr<RenderScene> m_renderScene;
+    std::unique_ptr<BlurMaterial> m_blurMaterial;
+    std::unique_ptr<Quad> m_blurQuad;
+    std::unique_ptr<ScreenBlur> m_screenBlurObject;
+
     // Uniforms
     std::unique_ptr<DescriptorTable> m_descriptorTable;
 

@@ -77,7 +77,8 @@ void RenderScene::createGraphicPipelines(RenderContext& renderContext, VkRenderP
     for (auto& sceneObject : m_sceneObjects) {
         auto* material = sceneObject->getMaterial();
         auto* mesh = sceneObject->getMesh();
-        material->createPipeline(renderContext, renderPass, mesh->getBindingDescription(), mesh->getAttributeDescriptions(), globalDescriptorLayout);
+        material->createPipeline(renderContext, renderPass, mesh->getBindingDescription(), 
+            mesh->getAttributeDescriptions(), globalDescriptorLayout, renderContext.multiSamplingSamples());
     }
 }
 

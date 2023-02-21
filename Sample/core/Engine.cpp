@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include <utils/ShaderLoader.h>
+#include <utils/Quad.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -51,6 +52,17 @@ void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSu
 
     // Mesh, Material, Textures & Shaders
     m_renderScene->initialize(*m_renderContext, *m_descriptorTable, viewParams);
+   
+    m_blurQuad = std::make_unique<Quad>();
+    m_blurQuad->createBuffers(*m_renderContext);
+    Quad* quadPtr = m_blurQuad.get();
+    VkShaderModule blurVertexShader = ShaderLoader::loadShader("shaders/blur_vert.spv", m_renderContext->device());
+    VkShaderModule blurFragmentShader = ShaderLoader::loadShader("shaders/blur_frag.spv", m_renderContext->device());
+    m_blurMaterial = std::make_unique<BlurMaterial>(m_renderContext->device(), blurVertexShader, blurFragmentShader);
+    BlurMaterial* blurMaterialPtr = m_blurMaterial.get();
+    m_descriptorTable->addMaterial(blurMaterialPtr);
+    m_screenBlurObject = std::make_unique<ScreenBlur>(*quadPtr, *m_blurMaterial);
+
 
     // Descriptor 
     m_descriptorTable->createDescriptorPool();
@@ -60,6 +72,8 @@ void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSu
 
     // Pipelines
     m_renderScene->createGraphicPipelines(*m_renderContext, m_mainRenderPass, *m_descriptorTable);
+    m_blurMaterial->createPipeline(*m_renderContext, m_mainRenderPass, m_blurQuad->getBindingDescription(), 
+        m_blurQuad->getAttributeDescriptions(), m_descriptorTable->globalDescriptorLayout(), VK_SAMPLE_COUNT_1_BIT);
 
     createCommandBuffers();
     createSyncObjects();
@@ -167,6 +181,10 @@ void Engine::cleanUp()
 
     m_graphicInterface->cleanUp(*m_renderContext);
     m_renderScene->cleanUp(*m_renderContext);
+
+    m_blurMaterial->cleanUp(*m_renderContext);
+    m_blurQuad->cleanUp(*m_renderContext);
+
     m_descriptorTable->cleanUp();
 
     for (size_t i = 0; i < m_imageAvailableSemaphores.size(); i++) {
@@ -182,6 +200,7 @@ void Engine::cleanUpSwapchain()
 
     vkFreeCommandBuffers(m_renderContext->device(), m_renderContext->commandPool(), static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
     m_renderScene->destroyGraphicPipelines(*m_renderContext);
+    m_blurMaterial->destroyPipeline(*m_renderContext);
     vkDestroyRenderPass(m_renderContext->device(), m_mainRenderPass, nullptr);
 
     m_renderContext->cleanUpSwapChain();
@@ -199,6 +218,12 @@ void Engine::updateUniformBuffer(Camera& camera, ViewParams& viewParams, uint32_
     auto& frameDescriptors = m_descriptorTable->getFrameDescriptor(imageIndex);
     auto& globalDescritpor = m_descriptorTable->getGlobalDescriptor(imageIndex);
     m_renderScene->updateUniforms(*m_renderContext, camera, viewParams, *m_descriptorTable, frameDescriptors, globalDescritpor);
+}
+
+void Engine::createRenderPass()
+{
+    createMainRenderPass();
+    createBlurRenderPass();
 }
 
 void Engine::createMainRenderPass()
@@ -326,7 +351,7 @@ void Engine::updateCommandBuffer(uint32_t imageIndex)
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = 0; // Optional
     beginInfo.pInheritanceInfo = nullptr; // Optional
-
+        
     if (vkBeginCommandBuffer(m_commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("failed to begin recording command buffer!");
     }

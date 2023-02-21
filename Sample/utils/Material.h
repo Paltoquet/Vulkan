@@ -20,7 +20,7 @@ public:
 
     // change to vector<VkVertexInputAttributeDescription>
     void createPipeline(RenderContext& renderContext, VkRenderPass renderPass, VkVertexInputBindingDescription bindingDescription, 
-        std::array<VkVertexInputAttributeDescription, 3> vertexDescription, VkDescriptorSetLayout globalDescriptionLayout);
+        std::array<VkVertexInputAttributeDescription, 3> vertexDescription, VkDescriptorSetLayout globalDescriptionLayout, VkSampleCountFlagBits sampleCount);
 
     virtual void cleanUp(RenderContext& renderContext);
     void destroyPipeline(RenderContext& renderContext);

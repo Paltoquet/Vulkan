@@ -47,7 +47,8 @@ void Material::createDescriptorLayouts(RenderContext& renderContext)
     Create the graphic pipeline used by the material used during draw call:
         - vkCmdBindPipeline(m_commandBuffers, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 */
-void Material::createPipeline(RenderContext& renderContext, VkRenderPass renderPass, VkVertexInputBindingDescription bindingDescription, std::array<VkVertexInputAttributeDescription, 3> vertexDescription, VkDescriptorSetLayout globalDescriptorLayout)
+void Material::createPipeline(RenderContext& renderContext, VkRenderPass renderPass, VkVertexInputBindingDescription bindingDescription, 
+    std::array<VkVertexInputAttributeDescription, 3> vertexDescription, VkDescriptorSetLayout globalDescriptorLayout, VkSampleCountFlagBits sampleCount)
 {
     // Vertex Shader
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
@@ -114,7 +115,7 @@ void Material::createPipeline(RenderContext& renderContext, VkRenderPass renderP
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = renderContext.multiSamplingSamples();
+    multisampling.rasterizationSamples = sampleCount; // renderContext.multiSamplingSamples();
     multisampling.minSampleShading = 1.0f; // Optional
     multisampling.pSampleMask = nullptr; // Optional
     //multisampling.sampleShadingEnable = VK_TRUE; // enable sample shading in the pipeline
