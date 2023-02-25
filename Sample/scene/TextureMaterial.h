@@ -12,7 +12,7 @@ public:
 
 public:
     void createDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory) override;
-    void updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer) override;
+    void updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer, size_t frameIndex) override;
     void createTextureSampler(RenderContext& renderContext, const ImageView& imageView);
     void cleanUp(RenderContext& renderContext) override;
 

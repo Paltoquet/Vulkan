@@ -35,7 +35,7 @@ public:
 
 private:
     void createRenderPass();
-    void createMainRenderPass();
+    void createOffscrenRenderPass();
     void createBlurRenderPass();
 
     void createGraphicInterface(Window* window, ViewParams& viewParams);
@@ -50,7 +50,8 @@ private:
     uint32_t m_windowHeight;
     // RenderPass
     std::unique_ptr<RenderContext> m_renderContext;
-    VkRenderPass m_mainRenderPass;
+    VkRenderPass m_offscreenRenderPass;
+    VkRenderPass m_blurRenderPass;
     // Draw commands
     std::vector<VkCommandBuffer> m_commandBuffers;
     // Graphic Interface

@@ -46,16 +46,26 @@ void RenderContext::cleanUpDevice()
 
 void RenderContext::cleanUpFrameBuffers()
 {
-    vkDestroyImageView(m_device, m_depthAttachment.imageView, nullptr);
-    vkDestroyImage(m_device, m_depthAttachment.image, nullptr);
-    vkFreeMemory(m_device, m_depthAttachment.imageMemory, nullptr);
+    int frameCount = static_cast<int>(m_frames.size());
+    for (int i = 0; i < frameCount; i++) {
+        vkDestroyImageView(m_device, m_offscrenColorAttachments[i].imageView, nullptr);
+        vkDestroyImage(m_device, m_offscrenColorAttachments[i].image, nullptr);
+        vkFreeMemory(m_device, m_offscrenColorAttachments[i].imageMemory, nullptr);
 
-    vkDestroyImageView(m_device, m_colorAttachment.imageView, nullptr);
-    vkDestroyImage(m_device, m_colorAttachment.image, nullptr);
-    vkFreeMemory(m_device, m_colorAttachment.imageMemory, nullptr);
+        vkDestroyImageView(m_device, m_resolveColorAttachments[i].imageView, nullptr);
+        vkDestroyImage(m_device, m_resolveColorAttachments[i].image, nullptr);
+        vkFreeMemory(m_device, m_resolveColorAttachments[i].imageMemory, nullptr);
 
-    for (size_t i = 0; i < m_frameBuffers.size(); i++) {
-        vkDestroyFramebuffer(m_device, m_frameBuffers[i], nullptr);
+        vkDestroyImageView(m_device, m_offscreenDepthAttachments[i].imageView, nullptr);
+        vkDestroyImage(m_device, m_offscreenDepthAttachments[i].image, nullptr);
+        vkFreeMemory(m_device, m_offscreenDepthAttachments[i].imageMemory, nullptr);
+
+        vkDestroyImageView(m_device, m_blurDepthAttachments[i].imageView, nullptr);
+        vkDestroyImage(m_device, m_blurDepthAttachments[i].image, nullptr);
+        vkFreeMemory(m_device, m_blurDepthAttachments[i].imageMemory, nullptr);
+
+        vkDestroyFramebuffer(m_device, m_offscreenFrameBuffers[i], nullptr);
+        vkDestroyFramebuffer(m_device, m_blurFrameBuffers[i], nullptr);
     }
 }
 
@@ -121,29 +131,41 @@ void RenderContext::createSwapChain(const VkExtent2D& dimension, const SwapChain
     }
 }
 
-void RenderContext::createFrameBuffers(const VkRenderPass& renderPass)
+void RenderContext::createOffScreenFrameBuffer(const VkRenderPass& renderPass)
 {
-    // Color Attachment
-    vk_initializer::createImage(m_device, m_physicalDevice, this->width(), this->height(), 1, m_MSAASamples, 
-        m_swapChain->currentImageFormat(), VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_colorAttachment.image, m_colorAttachment.imageMemory);
+    int frameCount = static_cast<int>(m_frames.size());
+    m_offscreenFrameBuffers.resize(frameCount);
+    m_offscrenColorAttachments.resize(frameCount);
+    m_offscreenDepthAttachments.resize(frameCount);
+    m_resolveColorAttachments.resize(frameCount);
 
-    m_colorAttachment.imageView = vk_initializer::createImageView(m_device, m_colorAttachment.image, m_swapChain->currentImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    for (int i = 0; i < frameCount; i++) {
+        // Color Attachment
+        vk_initializer::createImage(m_device, m_physicalDevice, this->width(), this->height(), 1, m_MSAASamples,
+            m_swapChain->currentImageFormat(), VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_offscrenColorAttachments[i].image, m_offscrenColorAttachments[i].imageMemory);
 
-    // Depth Attachment
-    vk_initializer::createImage(m_device, m_physicalDevice, this->width(), this->height(), 1, m_MSAASamples, 
-        m_depthImageFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-        m_depthAttachment.image, m_depthAttachment.imageMemory);
+        m_offscrenColorAttachments[i].imageView = vk_initializer::createImageView(m_device, m_offscrenColorAttachments[i].image, m_swapChain->currentImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
-    m_depthAttachment.imageView = vk_initializer::createImageView(m_device, m_depthAttachment.image, m_depthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+        // Depth Attachment
+        vk_initializer::createImage(m_device, m_physicalDevice, this->width(), this->height(), 1, m_MSAASamples,
+            m_depthImageFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            m_offscreenDepthAttachments[i].image, m_offscreenDepthAttachments[i].imageMemory);
 
-    // FrameBuffers
-    m_frameBuffers.resize(m_frames.size());
-    for (size_t i = 0; i < m_frames.size(); i++) {
+        m_offscreenDepthAttachments[i].imageView = vk_initializer::createImageView(m_device, m_offscreenDepthAttachments[i].image, m_depthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+
+        // Resolve Attachment
+        vk_initializer::createImage(m_device, m_physicalDevice, this->width(), this->height(), 1, VK_SAMPLE_COUNT_1_BIT,
+            m_swapChain->currentImageFormat(), VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT ,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_resolveColorAttachments[i].image, m_resolveColorAttachments[i].imageMemory);
+
+        m_resolveColorAttachments[i].imageView = vk_initializer::createImageView(m_device, m_resolveColorAttachments[i].image, m_swapChain->currentImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
+        // FrameBuffers
         std::array<VkImageView, 3> attachments = {
-            m_colorAttachment.imageView,
-            m_depthAttachment.imageView,
-            m_frames[i]->getImageView(),
+            m_offscrenColorAttachments[i].imageView,
+            m_offscreenDepthAttachments[i].imageView,
+            m_resolveColorAttachments[i].imageView,
         };
 
         VkFramebufferCreateInfo framebufferInfo{};
@@ -155,7 +177,44 @@ void RenderContext::createFrameBuffers(const VkRenderPass& renderPass)
         framebufferInfo.height = this->height();
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &m_frameBuffers[i]) != VK_SUCCESS) {
+        if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &m_offscreenFrameBuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
+    }
+}
+
+void RenderContext::createBlurFrameBuffer(const VkRenderPass& renderPass)
+{
+    int frameCount = static_cast<int>(m_frames.size());
+    m_blurFrameBuffers.resize(frameCount);
+    m_blurDepthAttachments.resize(frameCount);
+
+    for (int i = 0; i < frameCount; i++) {
+
+        // Depth Attachment
+        vk_initializer::createImage(m_device, m_physicalDevice, this->width(), this->height(), 1, VK_SAMPLE_COUNT_1_BIT,
+            m_depthImageFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            m_blurDepthAttachments[i].image, m_blurDepthAttachments[i].imageMemory);
+
+        m_blurDepthAttachments[i].imageView = vk_initializer::createImageView(m_device, m_blurDepthAttachments[i].image, m_depthImageFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+
+
+        // FrameBuffers
+        std::array<VkImageView, 2> attachments = {
+            m_frames[i]->getImageView(),
+            m_blurDepthAttachments[i].imageView,
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = renderPass;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
+        framebufferInfo.width = this->width();
+        framebufferInfo.height = this->height();
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &m_blurFrameBuffers[i]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create framebuffer!");
         }
     }
@@ -329,9 +388,14 @@ const SwapChain& RenderContext::swapChain() const
     return *m_swapChain;
 }
 
-const std::vector<VkFramebuffer>& RenderContext::frameBuffers() const
+const std::vector<VkFramebuffer>& RenderContext::offScreenFrameBuffers() const
 {
-    return m_frameBuffers;
+    return m_offscreenFrameBuffers;
+}
+
+const std::vector<VkFramebuffer>& RenderContext::blurFrameBuffers() const
+{
+    return m_blurFrameBuffers;
 }
 
 VkFormat RenderContext::depthImageFormat() const
@@ -347,6 +411,11 @@ VkSampleCountFlagBits RenderContext::multiSamplingSamples() const
 const RenderFrame& RenderContext::getRenderFrame(uint32_t index) const
 {
     return *m_frames.at(index);
+}
+
+const FrameBufferAttachment& RenderContext::getOffScreenRenderTexture(uint32_t index)
+{
+    return m_resolveColorAttachments[index];
 }
 
 const VkInstance& RenderContext::vkInstance() const

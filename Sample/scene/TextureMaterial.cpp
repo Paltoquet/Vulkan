@@ -59,7 +59,7 @@ void TextureMaterial::createTextureSampler(RenderContext& renderContext, const I
     }
 }
 
-void TextureMaterial::updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer)
+void TextureMaterial::updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer, size_t frameIndex)
 {
     std::vector<VkWriteDescriptorSet> descriptorWrites;
 

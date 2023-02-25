@@ -16,7 +16,7 @@ public:
     
     void createDescriptorLayouts(RenderContext& renderContext);
     virtual void createDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory) = 0;
-    virtual void updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer) = 0;
+    virtual void updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer, size_t frameIndex) = 0;
 
     // change to vector<VkVertexInputAttributeDescription>
     void createPipeline(RenderContext& renderContext, VkRenderPass renderPass, VkVertexInputBindingDescription bindingDescription, 

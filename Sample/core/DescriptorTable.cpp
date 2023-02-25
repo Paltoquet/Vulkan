@@ -154,8 +154,8 @@ void DescriptorTable::createFrameDescriptors()
     /* ------------------------- Fill Descriptor ------------------------- */
 
     std::vector<VkWriteDescriptorSet> descriptorWrites;
-    for (auto& frameDescriptor : m_frameDescriptors) {
-
+    for (size_t frameIndex = 0; frameIndex < m_frameDescriptors.size(); frameIndex++) {
+        auto& frameDescriptor = m_frameDescriptors.at(frameIndex);
         auto& globalDescriptorEntry = frameDescriptor.getGlobalDescriptorEntry();
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = globalDescriptorEntry.buffer;
@@ -174,7 +174,7 @@ void DescriptorTable::createFrameDescriptors()
         // Materials
         for (auto& material : m_materials) {
             DescriptorEntry& descriptorEntry = frameDescriptor.getDescriptorEntry(material->materialId());
-            material->updateDescriptorSet(m_renderContext, descriptorEntry.descriptorSet, descriptorEntry.buffer);
+            material->updateDescriptorSet(m_renderContext, descriptorEntry.descriptorSet, descriptorEntry.buffer, frameIndex);
         }
     }
 

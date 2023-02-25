@@ -73,7 +73,7 @@ void FogMenu::initialize(Window* window, RenderContext& renderContext, VkRenderP
     //init_info.Subpass = 0;
     init_info.MinImageCount = renderContext.swapChain().size();
     init_info.ImageCount = renderContext.swapChain().size();
-    init_info.MSAASamples = renderContext.multiSamplingSamples();
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT; //renderContext.multiSamplingSamples();
     //init_info.Allocator = g_Allocator;
     //init_info.CheckVkResultFn = check_vk_result;
     ImGui_ImplVulkan_Init(&init_info, mainRenderPass);

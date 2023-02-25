@@ -67,7 +67,7 @@ void FogMaterial::createTextureSampler(RenderContext& renderContext, const Image
     }
 }
 
-void FogMaterial::updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer)
+void FogMaterial::updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer, size_t frameIndex)
 {
     std::vector<VkWriteDescriptorSet> descriptorWrites;
 

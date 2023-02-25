@@ -22,7 +22,8 @@ public:
 public:
     void createLogicalDevice();
     void createSwapChain(const VkExtent2D& dimension, const SwapChainSupportInfos& availableDetails);
-    void createFrameBuffers(const VkRenderPass& renderPass);
+    void createOffScreenFrameBuffer(const VkRenderPass& renderPass);
+    void createBlurFrameBuffer(const VkRenderPass& renderPass);
     void createCommandPool();
     void pickGraphicQueue();
     void pickDepthImageFormat();
@@ -38,10 +39,12 @@ public:
     void endSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
     const SwapChain& swapChain() const;
-    const std::vector<VkFramebuffer>& frameBuffers() const;
+    const std::vector<VkFramebuffer>& offScreenFrameBuffers() const;
+    const std::vector<VkFramebuffer>& blurFrameBuffers() const;
     VkFormat depthImageFormat() const;
     VkSampleCountFlagBits multiSamplingSamples() const;
     const RenderFrame& getRenderFrame(uint32_t index) const;
+    const FrameBufferAttachment& getOffScreenRenderTexture(uint32_t index);
 
     const VkInstance& vkInstance() const;
     const VkSurfaceKHR& surface() const;
@@ -70,10 +73,13 @@ private:
     VkCommandPool m_commandPool;
     std::unique_ptr<SwapChain> m_swapChain;
     std::vector<std::unique_ptr<RenderFrame>> m_frames;
-    std::vector<VkFramebuffer> m_frameBuffers;
+    std::vector<VkFramebuffer> m_offscreenFrameBuffers;
+    std::vector<VkFramebuffer> m_blurFrameBuffers;
 
-    FrameBufferAttachment m_colorAttachment;
-    FrameBufferAttachment m_depthAttachment;
+    std::vector<FrameBufferAttachment> m_offscrenColorAttachments;
+    std::vector<FrameBufferAttachment> m_resolveColorAttachments;
+    std::vector<FrameBufferAttachment> m_offscreenDepthAttachments;
+    std::vector<FrameBufferAttachment> m_blurDepthAttachments;
 
     VkQueue m_graphicsQueue;
     VkQueue m_presentQueue;
