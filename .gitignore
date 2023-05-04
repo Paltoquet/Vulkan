@@ -2,5 +2,5 @@
 **/.vs/
 **/x64/
 
-*.vcxproj*
+*.vcxproj.*
 **/*.spv
