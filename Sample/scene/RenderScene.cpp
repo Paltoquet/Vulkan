@@ -73,7 +73,7 @@ void RenderScene::initialize(RenderContext& renderContext, DescriptorTable& desc
 
 void RenderScene::createGraphicPipelines(RenderContext& renderContext, VkRenderPass renderPass, DescriptorTable& descriptorTable)
 {
-    auto globalDescriptorLayout = descriptorTable.globalDescriptorLayout();
+    auto globalDescriptorLayout = descriptorTable.worldDescriptorLayout();
     for (auto& sceneObject : m_sceneObjects) {
         auto* material = sceneObject->getMaterial();
         auto* mesh = sceneObject->getMesh();

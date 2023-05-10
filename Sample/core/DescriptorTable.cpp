@@ -53,12 +53,22 @@ void DescriptorTable::createDescriptorPool()
     descriptorPoolSizes.push_back(globalDescriptor);
     
     for (auto& material : m_materials) {
-        std::vector<VkDescriptorSetLayoutBinding>& descriptorBindings = material->descriptorBindings();
+        std::vector<VkDescriptorSetLayoutBinding>& frameDescriptorBindings = material->frameDescriptorBindings();
+        std::vector<VkDescriptorSetLayoutBinding>& ressourceDescriptorBindings = material->ressourceDescriptorBindings();
 
-        for (auto& binding : descriptorBindings) {
+        // cpu/gpu ressources
+        for (auto& binding : frameDescriptorBindings) {
             VkDescriptorPoolSize descriptor;
             descriptor.type = binding.descriptorType;
             descriptor.descriptorCount = static_cast<uint32_t>(swapChainImageSize);
+            descriptorPoolSizes.push_back(descriptor);
+        }
+
+        // gpu only ressources
+        for (auto& binding : ressourceDescriptorBindings) {
+            VkDescriptorPoolSize descriptor;
+            descriptor.type = binding.descriptorType;
+            descriptor.descriptorCount = static_cast<uint32_t>(1);
             descriptorPoolSizes.push_back(descriptor);
         }
     }
@@ -68,7 +78,8 @@ void DescriptorTable::createDescriptorPool()
     poolInfo.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
     poolInfo.pPoolSizes = descriptorPoolSizes.data();
     // (nb materials + globalDescriptor) * nbSwapChainImages
-    poolInfo.maxSets = static_cast<uint32_t>((m_materials.size() + 1) * swapChainImageSize);
+    uint32_t nb_descriptorPerMaterial = 2;
+    poolInfo.maxSets = static_cast<uint32_t>((m_materials.size() + 1) * swapChainImageSize * nb_descriptorPerMaterial);
 
     if (vkCreateDescriptorPool(m_renderContext.device(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor pool!");
@@ -84,7 +95,7 @@ void DescriptorTable::createDescriptorLayouts()
     globalLayoutInfo.bindingCount = 1;
     globalLayoutInfo.pBindings = globalLayoutBindings.data();
 
-    if (vkCreateDescriptorSetLayout(m_renderContext.device(), &globalLayoutInfo, nullptr, &m_globalUniformDescriptorLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(m_renderContext.device(), &globalLayoutInfo, nullptr, &m_worldDescriptorLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create global descriptor set layout!");
     }
 
@@ -94,7 +105,7 @@ void DescriptorTable::createDescriptorLayouts()
     }
 }
 
-void DescriptorTable::createDescriptorBuffers()
+void DescriptorTable::createDescriptorRessources()
 {
     uint32_t swapChainImageSize = m_renderContext.swapChain().size();
     VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -102,6 +113,7 @@ void DescriptorTable::createDescriptorBuffers()
     // Frame descriptor
     VkDeviceSize matrixBufferSize = sizeof(MatrixBuffer::BufferData);
     m_frameDescriptors.resize(swapChainImageSize);
+    m_ressourceDescriptors.reserve(m_materials.size());
 
     for (auto& frameDescriptor : m_frameDescriptors) {
         frameDescriptor.initialize(m_materials);
@@ -113,12 +125,17 @@ void DescriptorTable::createDescriptorBuffers()
         // material descriptor
         for (auto& material : m_materials) {
             auto& descriptorEntry = frameDescriptor.getDescriptorEntry(material->materialId());
-            material->createDescriptorBuffer(m_renderContext, descriptorEntry.buffer, descriptorEntry.memory);
+            material->createFrameDescriptorBuffer(m_renderContext, descriptorEntry.buffer, descriptorEntry.memory);
         }
+    }
+
+    // material ressources
+    for (auto& material : m_materials) {
+        material->createMaterialRessources(m_renderContext);
     }
 }
 
-void DescriptorTable::createFrameDescriptors()
+void DescriptorTable::createDescriptorSets()
 {
     uint32_t swapChainImageSize = m_renderContext.swapChain().size();
 
@@ -131,27 +148,51 @@ void DescriptorTable::createFrameDescriptors()
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_descriptorPool;
         allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts = &m_globalUniformDescriptorLayout;
+        allocInfo.pSetLayouts = &m_worldDescriptorLayout;
         if (vkAllocateDescriptorSets(m_renderContext.device(), &allocInfo, &globalDescriptorEntry.descriptorSet) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
         // Material's descriptors
         for (auto& material : m_materials) {
+            // material per frame ressource, cpu/gpu parameters
             DescriptorEntry& descriptorEntry = frameDescriptor.getDescriptorEntry(material->materialId());
-            std::vector<VkDescriptorSetLayout> descriptorLayout = { material->descriptorLayout() };
+            std::vector<VkDescriptorSetLayout> frameDescriptorLayout = { material->frameDescriptorLayout() };
             VkDescriptorSetAllocateInfo allocInfo{};
             allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             allocInfo.descriptorPool = m_descriptorPool;
             allocInfo.descriptorSetCount = 1;
-            allocInfo.pSetLayouts = descriptorLayout.data();
+            allocInfo.pSetLayouts = frameDescriptorLayout.data();
 
             if (vkAllocateDescriptorSets(m_renderContext.device(), &allocInfo, &descriptorEntry.descriptorSet) != VK_SUCCESS) {
                 throw std::runtime_error("failed to allocate descriptor sets!");
             }
         }
     }
+
+    // Material gpu ressources, textures & buffer
+    for (auto& material : m_materials) {
+
+        // material gpu ressources, textures & buffer
+        VkDescriptorSet& descriptorSet = m_ressourceDescriptors[material->materialId()];
+        std::vector<VkDescriptorSetLayout> ressourceDescriptorLayout = { material->ressourceDescriptorLayout() };
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = m_descriptorPool;
+        allocInfo.descriptorSetCount = 1;
+        allocInfo.pSetLayouts = ressourceDescriptorLayout.data();
+
+        if (vkAllocateDescriptorSets(m_renderContext.device(), &allocInfo, &descriptorSet) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate descriptor sets!");
+        }
+    }
+
     /* ------------------------- Fill Descriptor ------------------------- */
+    updateDescriptorSets();
+}
+
+void DescriptorTable::updateDescriptorSets()
+{
 
     std::vector<VkWriteDescriptorSet> descriptorWrites;
     for (auto& frameDescriptor : m_frameDescriptors) {
@@ -162,6 +203,7 @@ void DescriptorTable::createFrameDescriptors()
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(MatrixBuffer::BufferData);
         VkWriteDescriptorSet descriptorWrite;
+        descriptorWrite.pNext = NULL;
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrite.dstSet = globalDescriptorEntry.descriptorSet;
         descriptorWrite.dstBinding = 0;
@@ -174,16 +216,19 @@ void DescriptorTable::createFrameDescriptors()
         // Materials
         for (auto& material : m_materials) {
             DescriptorEntry& descriptorEntry = frameDescriptor.getDescriptorEntry(material->materialId());
-            material->updateDescriptorSet(m_renderContext, descriptorEntry.descriptorSet, descriptorEntry.buffer);
+            VkDescriptorSet ressourceEntry = m_ressourceDescriptors.at(material->materialId());
+            material->updateFrameDescriptorSet(m_renderContext, descriptorEntry.descriptorSet, descriptorEntry.buffer);
+            material->updateRessourceDescripotSet(m_renderContext, ressourceEntry);
         }
     }
 
     vkUpdateDescriptorSets(m_renderContext.device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
+
 void DescriptorTable::cleanUp()
 {
-    vkDestroyDescriptorSetLayout(m_renderContext.device(), m_globalUniformDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_renderContext.device(), m_worldDescriptorLayout, nullptr);
     for (auto& frameDescriptor : m_frameDescriptors) {
         frameDescriptor.cleanUp(m_renderContext);
     }
@@ -206,12 +251,12 @@ DescriptorEntry& DescriptorTable::getGlobalDescriptor(size_t frameIndex)
     return m_frameDescriptors.at(frameIndex).getGlobalDescriptorEntry();
 }
 
-VkDescriptorSetLayout DescriptorTable::globalDescriptorLayout() const
+VkDescriptorSetLayout DescriptorTable::worldDescriptorLayout() const
 {
-    return m_globalUniformDescriptorLayout;
+    return m_worldDescriptorLayout;
 }
 
-std::vector<DescriptorEntry> DescriptorTable::getMaterialDescriptors(MaterialID materialId)
+std::vector<DescriptorEntry> DescriptorTable::getMaterialFrameDescriptor(MaterialID materialId)
 {
     std::vector<DescriptorEntry> descriptors;
     for (auto& frameDescriptor : m_frameDescriptors) {
@@ -219,4 +264,9 @@ std::vector<DescriptorEntry> DescriptorTable::getMaterialDescriptors(MaterialID 
         descriptors.push_back(descriptorRef);
     }
     return descriptors;
+}
+
+VkDescriptorSet DescriptorTable::getMaterialRessourceDescriptor(MaterialID materialId)
+{
+    return m_ressourceDescriptors.at(materialId);
 }

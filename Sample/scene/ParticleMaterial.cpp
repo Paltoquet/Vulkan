@@ -1,45 +1,46 @@
-#include "FogMaterial.h"
+#include "ParticleMaterial.h"
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>
 
-FogMaterial::FogMaterial(VkDevice device, VkShaderModule vertexShader, VkShaderModule fragmentShader):
-    Material(device, vertexShader, fragmentShader)
+ParticleMaterial::ParticleMaterial(VkDevice device, VkShaderModule vertexShader, VkShaderModule fragmentShader, VkBuffer particleBuffer, VkDeviceSize bufferSize):
+    Material(device, vertexShader, fragmentShader),
+    m_particleBuffer(particleBuffer),
+    m_bufferSize(bufferSize)
 {
     /* ------------------ Descriptor Binding ------------------ */
 
-    VkDescriptorSetLayoutBinding textureDataBinding;
+    /*VkDescriptorSetLayoutBinding textureDataBinding;
     textureDataBinding.binding = 1;
     textureDataBinding.descriptorCount = 1;
     textureDataBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     textureDataBinding.pImmutableSamplers = nullptr;
-    textureDataBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    textureDataBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;*/
 
-    VkDescriptorSetLayoutBinding fogDataBinding;
-    fogDataBinding.binding = 3;
-    fogDataBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    fogDataBinding.descriptorCount = 1;
-    fogDataBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    fogDataBinding.pImmutableSamplers = nullptr; // Optional
+    VkDescriptorSetLayoutBinding particleBufferDataBinding;
+    particleBufferDataBinding.binding = 3;
+    particleBufferDataBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    particleBufferDataBinding.descriptorCount = 1;
+    particleBufferDataBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    particleBufferDataBinding.pImmutableSamplers = nullptr; // Optional
 
-    m_frameDescriptorBindings.push_back(textureDataBinding);
-    m_frameDescriptorBindings.push_back(fogDataBinding);
+    m_ressourceDescriptorBindings.push_back(particleBufferDataBinding);
 }
 
-FogMaterial::~FogMaterial()
+ParticleMaterial::~ParticleMaterial()
 {
 
 }
 
-void FogMaterial::createFrameDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory)
+void ParticleMaterial::createFrameDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory)
 {
-    VkDeviceSize fogBufferSize = sizeof(CloudData);
-    VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    renderContext.createBuffer(fogBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, memoryPropertyFlags, buffer, memory);
+    //VkDeviceSize fogBufferSize = sizeof(CloudData);
+    //VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    //renderContext.createBuffer(fogBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, memoryPropertyFlags, buffer, memory);
 }
 
-void FogMaterial::createTextureSampler(RenderContext& renderContext, const ImageView& imageView)
+void ParticleMaterial::createTextureSampler(RenderContext& renderContext, const ImageView& imageView)
 {
-    m_noiseTexture3D = imageView;
+    /*m_noiseTexture2D = imageView;
 
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(renderContext.physicalDevice(), &properties);
@@ -60,26 +61,21 @@ void FogMaterial::createTextureSampler(RenderContext& renderContext, const Image
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = static_cast<float>(m_noiseTexture3D.mipLevels());
+    samplerInfo.maxLod = static_cast<float>(m_noiseTexture2D.mipLevels());
 
     if (vkCreateSampler(renderContext.device(), &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");
-    }
+    }*/
 }
 
-void FogMaterial::updateFrameDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer)
+void ParticleMaterial::updateFrameDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer)
 {
-    std::vector<VkWriteDescriptorSet> descriptorWrites;
-
-    VkDescriptorBufferInfo fogInfo;
-    fogInfo.buffer = buffer;
-    fogInfo.offset = 0;
-    fogInfo.range = sizeof(CloudData);
+    /*std::vector<VkWriteDescriptorSet> descriptorWrites;
 
     VkDescriptorImageInfo imageInfo;
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     //imageInfo.imageView = m_textureImageView.view();
-    imageInfo.imageView = m_noiseTexture3D.view();
+    imageInfo.imageView = m_noiseTexture2D.view();
     imageInfo.sampler = m_textureSampler;
 
     VkWriteDescriptorSet imageSampler;
@@ -92,24 +88,36 @@ void FogMaterial::updateFrameDescriptorSet(RenderContext& renderContext, VkDescr
     imageSampler.pImageInfo = &imageInfo;
     imageSampler.pNext = nullptr;
 
+    descriptorWrites.push_back(imageSampler);
+    vkUpdateDescriptorSets(renderContext.device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);*/
+}
+
+void ParticleMaterial::updateRessourceDescripotSet(RenderContext& renderContext, VkDescriptorSet descriptorSet)
+{
+    std::vector<VkWriteDescriptorSet> descriptorWrites;
+
+    VkDescriptorBufferInfo fogInfo;
+    fogInfo.buffer = m_particleBuffer;
+    fogInfo.offset = 0;
+    fogInfo.range = m_bufferSize;
+
     VkWriteDescriptorSet cloudBuffer;
     cloudBuffer.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     cloudBuffer.dstSet = descriptorSet;
     cloudBuffer.dstBinding = 3;
     cloudBuffer.dstArrayElement = 0;
-    cloudBuffer.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    cloudBuffer.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     cloudBuffer.descriptorCount = 1;
     cloudBuffer.pBufferInfo = &fogInfo;
     cloudBuffer.pNext = nullptr;
 
-    descriptorWrites.push_back(imageSampler);
     descriptorWrites.push_back(cloudBuffer);
 
     vkUpdateDescriptorSets(renderContext.device(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
-void FogMaterial::cleanUp(RenderContext& renderContext)
+void ParticleMaterial::cleanUp(RenderContext& renderContext)
 {
     Material::cleanUp(renderContext);
-    vkDestroySampler(renderContext.device(), m_textureSampler, nullptr);
+    //vkDestroySampler(renderContext.device(), m_textureSampler, nullptr);
 }

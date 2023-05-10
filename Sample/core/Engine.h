@@ -4,6 +4,7 @@
 #include "DescriptorTable.h"
 #include "Window.h"
 #include <scene/RenderScene.h>
+#include <scene/ParticleSystem.h>
 #include <utils/Camera.h>
 #include <ui/ViewParams.h>
 #include <ui/FogMenu.h>
@@ -52,6 +53,7 @@ private:
     std::unique_ptr<FogMenu> m_graphicInterface;
     // Scene
     std::unique_ptr<RenderScene> m_renderScene;
+    std::unique_ptr<ParticleSystem> m_particleSystem;
     // Uniforms
     std::unique_ptr<DescriptorTable> m_descriptorTable;
 

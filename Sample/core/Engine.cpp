@@ -46,20 +46,23 @@ void Engine::initialize(Window* window, const SwapChainSupportInfos& swapChainSu
     createGraphicInterface(window, viewParams);
     // Scene Managements
     m_renderScene = std::make_unique<RenderScene>();
+    m_particleSystem = std::make_unique<ParticleSystem>();
     // Shader Uniforms
     m_descriptorTable = std::make_unique<DescriptorTable>(*m_renderContext);
 
     // Mesh, Material, Textures & Shaders
     m_renderScene->initialize(*m_renderContext, *m_descriptorTable, viewParams);
+    m_particleSystem->initialize(*m_renderContext, *m_descriptorTable, viewParams);
 
     // Descriptor 
     m_descriptorTable->createDescriptorPool();
     m_descriptorTable->createDescriptorLayouts();
-    m_descriptorTable->createDescriptorBuffers();
-    m_descriptorTable->createFrameDescriptors();
+    m_descriptorTable->createDescriptorRessources();
+    m_descriptorTable->createDescriptorSets();
 
     // Pipelines
     m_renderScene->createGraphicPipelines(*m_renderContext, m_mainRenderPass, *m_descriptorTable);
+    m_particleSystem->createGraphicPipelines(*m_renderContext, m_mainRenderPass, *m_descriptorTable);
 
     createCommandBuffers();
     createSyncObjects();
@@ -155,6 +158,7 @@ void Engine::recreateSwapChain()
     createMainRenderPass();
     // Pipeline
     m_renderScene->createGraphicPipelines(*m_renderContext, m_mainRenderPass, *m_descriptorTable);
+    m_particleSystem->createGraphicPipelines(*m_renderContext, m_mainRenderPass, *m_descriptorTable);
     // FrameBuffers
     m_renderContext->createFrameBuffers(m_mainRenderPass);
     // Command buffers
@@ -167,6 +171,7 @@ void Engine::cleanUp()
 
     m_graphicInterface->cleanUp(*m_renderContext);
     m_renderScene->cleanUp(*m_renderContext);
+    m_particleSystem->cleanUp(*m_renderContext);
     m_descriptorTable->cleanUp();
 
     for (size_t i = 0; i < m_imageAvailableSemaphores.size(); i++) {
@@ -182,6 +187,7 @@ void Engine::cleanUpSwapchain()
 
     vkFreeCommandBuffers(m_renderContext->device(), m_renderContext->commandPool(), static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
     m_renderScene->destroyGraphicPipelines(*m_renderContext);
+    m_particleSystem->destroyGraphicPipelines(*m_renderContext);
     vkDestroyRenderPass(m_renderContext->device(), m_mainRenderPass, nullptr);
 
     m_renderContext->cleanUpSwapChain();
@@ -199,6 +205,7 @@ void Engine::updateUniformBuffer(Camera& camera, ViewParams& viewParams, uint32_
     auto& frameDescriptors = m_descriptorTable->getFrameDescriptor(imageIndex);
     auto& globalDescritpor = m_descriptorTable->getGlobalDescriptor(imageIndex);
     m_renderScene->updateUniforms(*m_renderContext, camera, viewParams, *m_descriptorTable, frameDescriptors, globalDescritpor);
+    m_particleSystem->updateUniforms(*m_renderContext, camera, viewParams, *m_descriptorTable, frameDescriptors, globalDescritpor);
 }
 
 void Engine::createMainRenderPass()
@@ -358,7 +365,8 @@ void Engine::fillCommandBuffers(uint32_t imageIndex)
     auto& globalDescriptor = m_descriptorTable->getGlobalDescriptor(imageIndex);
 
     // Fill Scene command buffer
-    m_renderScene->fillCommandBuffer(*m_renderContext, m_commandBuffers[imageIndex], frameDescriptor, globalDescriptor.descriptorSet);
+    //m_renderScene->fillCommandBuffer(*m_renderContext, m_commandBuffers[imageIndex], frameDescriptor, globalDescriptor.descriptorSet);
+    m_particleSystem->fillCommandBuffer(*m_renderContext, m_commandBuffers[imageIndex], *m_descriptorTable, frameDescriptor, globalDescriptor.descriptorSet);
     m_graphicInterface->fillCommandBuffer(m_commandBuffers[imageIndex]);
 
     vkCmdEndRenderPass(m_commandBuffers[imageIndex]);

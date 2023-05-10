@@ -31,14 +31,23 @@ Material::~Material()
 */
 void Material::createDescriptorLayouts(RenderContext& renderContext)
 {
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(m_descriptorBindings.size());
-    layoutInfo.pBindings = m_descriptorBindings.data();
+    VkDescriptorSetLayoutCreateInfo ressourcelayoutInfo{};
+    ressourcelayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    ressourcelayoutInfo.bindingCount = static_cast<uint32_t>(m_ressourceDescriptorBindings.size());
+    ressourcelayoutInfo.pBindings = m_ressourceDescriptorBindings.data();
+
+    if (vkCreateDescriptorSetLayout(renderContext.device(), &ressourcelayoutInfo, nullptr, &m_ressourceDescriptorSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create descriptor set layout!");
+    }
+
+    VkDescriptorSetLayoutCreateInfo frameLayoutInfo{};
+    frameLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    frameLayoutInfo.bindingCount = static_cast<uint32_t>(m_frameDescriptorBindings.size());
+    frameLayoutInfo.pBindings = m_frameDescriptorBindings.data();
     // needs VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
     //layoutInfo.pNext = m_bindingStrategies.size() > 0 ? m_bindingStrategies.data() : NULL;
 
-    if (vkCreateDescriptorSetLayout(renderContext.device(), &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
+    if (vkCreateDescriptorSetLayout(renderContext.device(), &frameLayoutInfo, nullptr, &m_frameDescriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor set layout!");
     }
 }
@@ -167,10 +176,10 @@ void Material::createPipeline(RenderContext& renderContext, VkRenderPass renderP
 
     /* --------------------------------- Shader Uniforms --------------------------------- */
 
-    VkDescriptorSetLayout descriptors[2] = { globalDescriptorLayout, m_descriptorSetLayout };
+    VkDescriptorSetLayout descriptors[3] = { globalDescriptorLayout, m_frameDescriptorSetLayout, m_ressourceDescriptorSetLayout };
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 2;
+    pipelineLayoutInfo.setLayoutCount = 3;
     pipelineLayoutInfo.pSetLayouts = descriptors;
     pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
     pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
@@ -208,7 +217,8 @@ void Material::cleanUp(RenderContext& renderContext)
     vkDestroyShaderModule(renderContext.device(), m_vertexShader, nullptr);
     vkDestroyShaderModule(renderContext.device(), m_fragmentShader, nullptr);
 
-    vkDestroyDescriptorSetLayout(renderContext.device(), m_descriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(renderContext.device(), m_ressourceDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(renderContext.device(), m_frameDescriptorSetLayout, nullptr);
 }
 
 void Material::destroyPipeline(RenderContext& renderContext)
@@ -232,12 +242,22 @@ VkPipelineLayout Material::pipelineLayout() const
     return m_pipelineLayout;
 }
 
-VkDescriptorSetLayout Material::descriptorLayout() const
+VkDescriptorSetLayout Material::ressourceDescriptorLayout() const
 {
-    return m_descriptorSetLayout;
+    return m_ressourceDescriptorSetLayout;
 }
 
-std::vector<VkDescriptorSetLayoutBinding>& Material::descriptorBindings()
+VkDescriptorSetLayout Material::frameDescriptorLayout() const
 {
-    return m_descriptorBindings;
+    return m_frameDescriptorSetLayout;
+}
+
+std::vector<VkDescriptorSetLayoutBinding>& Material::ressourceDescriptorBindings()
+{
+    return m_ressourceDescriptorBindings;
+}
+
+std::vector<VkDescriptorSetLayoutBinding>& Material::frameDescriptorBindings()
+{
+    return m_frameDescriptorBindings;
 }

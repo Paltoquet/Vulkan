@@ -4,19 +4,21 @@
 #include <utils/ImageView.h>
 #include <glm/glm.hpp>
 
-class TextureMaterial : public Material
+class ParticleMaterial : public Material
 {
 public:
-    TextureMaterial(VkDevice device, VkShaderModule vertexShader, VkShaderModule fragmentShader);
-    ~TextureMaterial();
+    ParticleMaterial(VkDevice device, VkShaderModule vertexShader, VkShaderModule fragmentShader, VkBuffer particleBuffer, VkDeviceSize bufferSize);
+    ~ParticleMaterial();
 
 public:
+
     void createFrameDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory) override;
     void updateFrameDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer) override;
+    void updateRessourceDescripotSet(RenderContext& renderContext, VkDescriptorSet descriptorSet) override;
     void createTextureSampler(RenderContext& renderContext, const ImageView& imageView);
     void cleanUp(RenderContext& renderContext) override;
 
 private:
-    ImageView m_noiseTexture2D;
-    VkSampler m_textureSampler;
+    VkBuffer m_particleBuffer;
+    VkDeviceSize m_bufferSize;
 };

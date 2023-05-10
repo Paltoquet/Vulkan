@@ -14,7 +14,7 @@ TextureMaterial::TextureMaterial(VkDevice device, VkShaderModule vertexShader, V
     textureDataBinding.pImmutableSamplers = nullptr;
     textureDataBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    m_descriptorBindings.push_back(textureDataBinding);
+    m_frameDescriptorBindings.push_back(textureDataBinding);
 }
 
 TextureMaterial::~TextureMaterial()
@@ -22,7 +22,7 @@ TextureMaterial::~TextureMaterial()
 
 }
 
-void TextureMaterial::createDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory)
+void TextureMaterial::createFrameDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory)
 {
     //VkDeviceSize fogBufferSize = sizeof(CloudData);
     //VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -59,7 +59,7 @@ void TextureMaterial::createTextureSampler(RenderContext& renderContext, const I
     }
 }
 
-void TextureMaterial::updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer)
+void TextureMaterial::updateFrameDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer)
 {
     std::vector<VkWriteDescriptorSet> descriptorWrites;
 

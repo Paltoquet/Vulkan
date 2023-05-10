@@ -14,9 +14,11 @@ public:
     Material(VkDevice device, VkShaderModule vertexShader, VkShaderModule fragmentShader);
     virtual ~Material();
     
-    void createDescriptorLayouts(RenderContext& renderContext);
-    virtual void createDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory) = 0;
-    virtual void updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer) = 0;
+    virtual void createDescriptorLayouts(RenderContext& renderContext);
+    virtual void createFrameDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory) {}
+    virtual void updateFrameDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer) {}
+    virtual void createMaterialRessources(RenderContext& renderContext) {}
+    virtual void updateRessourceDescripotSet(RenderContext& renderContext, VkDescriptorSet descriptorSet) {}
 
     // change to vector<VkVertexInputAttributeDescription>
     void createPipeline(RenderContext& renderContext, VkRenderPass renderPass, VkVertexInputBindingDescription bindingDescription, 
@@ -29,8 +31,12 @@ public:
     MaterialID materialId() const;
     VkPipeline pipeline() const;
     VkPipelineLayout pipelineLayout() const;
-    VkDescriptorSetLayout descriptorLayout() const;
-    std::vector<VkDescriptorSetLayoutBinding>& descriptorBindings();
+    VkDescriptorSetLayout ressourceDescriptorLayout() const;
+    VkDescriptorSetLayout frameDescriptorLayout() const;
+    // used for gpu ressources, texture, buffers ...
+    std::vector<VkDescriptorSetLayoutBinding>& ressourceDescriptorBindings();
+    // used for cpu/gpu parameters
+    std::vector<VkDescriptorSetLayoutBinding>& frameDescriptorBindings();
 
 public:
     static std::mutex materialIndexLock;
@@ -45,8 +51,9 @@ protected:
     VkShaderModule m_vertexShader;
     VkShaderModule m_fragmentShader;
 
-    VkDescriptorSetLayout m_descriptorSetLayout;
-    std::vector<VkDescriptorSetLayoutBinding> m_descriptorBindings;
-    std::vector<VkDescriptorSetLayoutBindingFlagsCreateInfo> m_bindingStrategies;
-    std::vector<VkWriteDescriptorSet> m_descriptorWrites;
+    VkDescriptorSetLayout m_ressourceDescriptorSetLayout;
+    VkDescriptorSetLayout m_frameDescriptorSetLayout;
+    std::vector<VkDescriptorSetLayoutBinding> m_ressourceDescriptorBindings;
+    std::vector<VkDescriptorSetLayoutBinding> m_frameDescriptorBindings;
+    //std::vector<VkDescriptorSetLayoutBindingFlagsCreateInfo> m_bindingStrategies;
 };

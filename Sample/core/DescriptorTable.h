@@ -41,20 +41,23 @@ public:
 
     void createDescriptorPool();
     void createDescriptorLayouts();
-    void createDescriptorBuffers();
-    void createFrameDescriptors();
+    void createDescriptorRessources();
+    void createDescriptorSets();
+    void updateDescriptorSets();
     void cleanUp();
 
     FrameDescriptor& getFrameDescriptor(size_t frameIndex);
     DescriptorEntry& getGlobalDescriptor(size_t frameIndex);
-    VkDescriptorSetLayout globalDescriptorLayout() const;
+    VkDescriptorSetLayout worldDescriptorLayout() const;
 
-    std::vector<DescriptorEntry> getMaterialDescriptors(MaterialID materialId);
+    std::vector<DescriptorEntry> getMaterialFrameDescriptor(MaterialID materialId);
+    VkDescriptorSet getMaterialRessourceDescriptor(MaterialID materialId);
 
 private:
     RenderContext& m_renderContext;
     VkDescriptorPool m_descriptorPool;
+    VkDescriptorSetLayout m_worldDescriptorLayout;
     std::vector<FrameDescriptor> m_frameDescriptors;
     std::vector<Material*> m_materials;
-    VkDescriptorSetLayout m_globalUniformDescriptorLayout;
+    std::unordered_map<MaterialID, VkDescriptorSet> m_ressourceDescriptors;
 };

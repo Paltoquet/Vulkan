@@ -25,8 +25,8 @@ public:
     };
 
 public:
-    void createDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory) override;
-    void updateDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer) override;
+    void createFrameDescriptorBuffer(RenderContext& renderContext, VkBuffer& buffer, VkDeviceMemory& memory) override;
+    void updateFrameDescriptorSet(RenderContext& renderContext, VkDescriptorSet descriptorSet, VkBuffer buffer) override;
     void createTextureSampler(RenderContext& renderContext, const ImageView& imageView);
     void cleanUp(RenderContext& renderContext) override;
 
